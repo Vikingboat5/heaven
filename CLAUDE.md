@@ -36,5 +36,5 @@
 
 ## 按需加载的详细文档
 
-- 修复协议（五步闭环）：`.claude/skills/repair-loop.md` — **任何修复/排障任务开始前先加载**
-- 排查清单与案例复盘：`.claude/skills/debug-playbook.md`
+- 修复协议（五步闭环）：`.dsh/skills/repair-loop.md`（DSH 技能）/ `.claude/skills/repair-loop.md`（Claude Code，同内容）— **任何修复/排障任务开始前先加载**
+- 排查清单与案例复盘：`.dsh/skills/debug-playbook.md` / `.claude/skills/debug-playbook.md`（同内容）
