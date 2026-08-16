@@ -1,0 +1,15 @@
+{
+  "name": "dsh-repair-evaluator",
+  "version": "0.1.0",
+  "description": "修复闭环验证器: repair_verify 工具按工作区 .repair.yaml 逐层执行 unit/build/state/api-e2e/browser 验证, 返回结构化证据; 验证未全绿时禁止宣布修复完成",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "lib/*.js"
+  ],
+  "license": "MIT"
+}

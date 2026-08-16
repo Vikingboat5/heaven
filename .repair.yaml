@@ -1,0 +1,68 @@
+# 修复验证清单 — dsh-repair-evaluator 插件的 repair_verify 工具读取本文件
+# 层级: unit(单元测试) / build(构建检查) / state(服务端状态探测) / api-e2e(API全链路) / browser(真实浏览器走查)
+# 原则: 每层只收集客观证据; 全绿 (allPass=true) 才允许宣布修复完成。
+
+# browser 层的 MCP 服务器 (chrome-devtools-mcp, 复用本机 Chrome 远程调试端口 9222)
+browser_server:
+  command: npx
+  args: ['-y', 'chrome-devtools-mcp@latest', '--port', '9222']
+  startupTimeoutMs: 90000
+
+targets:
+  chat-history:
+    levels:
+      - level: unit
+        name: 后端 API 流程测试 (SQLite 隔离, 不碰真实服务)
+        cmd: python -m pytest tests/test_api_flow.py tests/test_birth.py -q
+        cwd: backend
+        timeout_ms: 300000
+
+      - level: build
+        name: 前端类型检查
+        cmd: npx vue-tsc -b
+        cwd: frontend
+        timeout_ms: 180000
+
+      - level: state
+        name: 服务端新代码生效探测
+        probes:
+          - url: http://localhost:8000/api/dialogue/history
+            expect_status: 401
+          - url: http://localhost:5173/src/api/client.ts
+            expect_contains: getChatHistory
+
+      - level: api-e2e
+        name: 对话历史 API 全链路探针 (注册→孵化→插消息→回显断言, 探针留存供 browser 层复用)
+        cmd: python scripts/e2e_verify_chat_history.py
+        timeout_ms: 120000
+
+      - level: browser
+        name: 浏览器切页回显走查 (保存原登录态→注入探针身份→断言历史消息→恢复原登录态)
+        steps:
+          - tool: navigate_page
+            args:
+              url: http://localhost:5173/login
+          - tool: evaluate_script
+            args:
+              function: "() => { localStorage.setItem('__old_pp_token', localStorage.getItem('pp_token') ?? ''); localStorage.setItem('__old_pp_username', localStorage.getItem('pp_username') ?? ''); localStorage.setItem('pp_token', '{{read:.e2e-token}}'); localStorage.setItem('pp_username', 'e2e_probe'); return true }"
+          - tool: navigate_page
+            args:
+              url: http://localhost:5173/chat
+          - tool: wait_for
+            args:
+              text: 主人你好呀
+              timeout_ms: 20000
+          - tool: take_snapshot
+            assert:
+              text_contains: 主人你好呀
+          - tool: list_console_messages
+            assert:
+              console_errors: 0
+          - tool: evaluate_script
+            args:
+              function: "() => { const old = localStorage.getItem('__old_pp_token'); if (old) localStorage.setItem('pp_token', old); else localStorage.removeItem('pp_token'); const u = localStorage.getItem('__old_pp_username'); if (u) localStorage.setItem('pp_username', u); else localStorage.removeItem('pp_username'); localStorage.removeItem('__old_pp_token'); localStorage.removeItem('__old_pp_username'); return true }"
+
+      - level: api-e2e
+        name: 清理探针账号 (browser 层之后执行, 用后即清)
+        cmd: python scripts/e2e_verify_chat_history.py --cleanup
+        timeout_ms: 60000
