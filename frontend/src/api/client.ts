@@ -58,11 +58,11 @@ export interface PetOut {
 export interface TaskOut {
   code: string
   name: string
-  desc: string
-  kind: string
+  description: string
+  type: string
   progress: number
   target: number
-  claimed: boolean
+  status: 'active' | 'claimable' | 'claimed'
   reward: { type: string; value: number; item_name?: string }
 }
 export interface AdventureLogOut {

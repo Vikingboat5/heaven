@@ -66,3 +66,67 @@ targets:
         name: 清理探针账号 (browser 层之后执行, 用后即清)
         cmd: python scripts/e2e_verify_chat_history.py --cleanup
         timeout_ms: 60000
+
+  tasks-claim:
+    levels:
+      - level: unit
+        name: 任务系统后端测试 (SQLite 隔离)
+        cmd: python -m pytest tests/test_tasks.py tests/test_api_flow.py -q
+        cwd: backend
+        timeout_ms: 300000
+
+      - level: build
+        name: 前端类型检查
+        cmd: npx vue-tsc -b
+        cwd: frontend
+        timeout_ms: 180000
+
+      - level: state
+        name: 服务端状态探测
+        probes:
+          - url: http://localhost:8000/api/tasks
+            expect_status: 401
+          - url: http://localhost:5173/src/api/client.ts
+            expect_contains: getTasks
+
+      - level: api-e2e
+        name: 任务领取 API 全链路 (注册→孵化→喂食→claimable→领取→claimed 断言)
+        cmd: python scripts/e2e_verify_task_claim.py
+        timeout_ms: 120000
+
+      - level: browser
+        name: 浏览器任务面板走查 (打开任务面板→断言"已领取"状态可见)
+        steps:
+          - tool: navigate_page
+            args:
+              url: http://localhost:5173/login
+          - tool: evaluate_script
+            args:
+              function: "() => { localStorage.setItem('__old_pp_token', localStorage.getItem('pp_token') ?? ''); localStorage.setItem('pp_token', '{{read:.e2e-token}}'); localStorage.setItem('pp_username', 'e2e_probe'); return true }"
+          - tool: navigate_page
+            args:
+              url: http://localhost:5173/
+          - tool: sleep
+            args:
+              ms: 2500
+          - tool: evaluate_script
+            args:
+              function: "() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '任务'); if (b) { b.click(); return true } return false }"
+          - tool: wait_for
+            args:
+              text: ['已领取']
+              timeout: 15000
+          - tool: take_snapshot
+            assert:
+              text_contains: 已领取
+          - tool: list_console_messages
+            assert:
+              console_errors: 0
+          - tool: evaluate_script
+            args:
+              function: "() => { const old = localStorage.getItem('__old_pp_token'); if (old) localStorage.setItem('pp_token', old); else localStorage.removeItem('pp_token'); localStorage.removeItem('__old_pp_token'); localStorage.removeItem('pp_username'); return true }"
+
+      - level: api-e2e
+        name: 清理探针账号 (browser 层之后执行)
+        cmd: python scripts/e2e_verify_task_claim.py --cleanup
+        timeout_ms: 60000

@@ -9,8 +9,8 @@ const loading = ref(true)
 const claiming = ref('')
 const toast = ref('')
 
-const daily = computed(() => tasks.value.filter((t) => t.kind === 'daily' || t.code.startsWith('daily')))
-const achievements = computed(() => tasks.value.filter((t) => !daily.value.includes(t)))
+const daily = computed(() => tasks.value.filter((t) => t.type === 'daily'))
+const achievements = computed(() => tasks.value.filter((t) => t.type !== 'daily'))
 
 function rewardText(t: TaskOut): string {
   const r = t.reward
@@ -38,7 +38,7 @@ async function load() {
 }
 
 async function claim(t: TaskOut) {
-  if (claiming.value || t.claimed || t.progress < t.target) return
+  if (claiming.value || t.status !== 'claimable') return
   claiming.value = t.code
   try {
     const r = await api.claimTask(t.code)
@@ -66,10 +66,10 @@ onMounted(load)
       <p v-if="loading" class="empty">加载中…</p>
       <template v-else>
         <p v-if="daily.length" class="group-title">每日</p>
-        <div v-for="t in daily" :key="t.code" class="task" :class="{ done: t.claimed }">
+        <div v-for="t in daily" :key="t.code" class="task" :class="{ done: t.status === 'claimed' }">
           <div class="task-info">
             <p class="task-name">{{ t.name }}</p>
-            <p class="task-desc">{{ t.desc }}</p>
+            <p class="task-desc">{{ t.description }}</p>
             <div class="task-track">
               <div class="task-fill" :style="{ width: Math.min(100, (t.progress / t.target) * 100) + '%' }"></div>
             </div>
@@ -77,18 +77,18 @@ onMounted(load)
           </div>
           <button
             class="claim"
-            :disabled="t.claimed || t.progress < t.target || claiming === t.code"
+            :disabled="t.status !== 'claimable' || claiming === t.code"
             @click="claim(t)"
           >
-            {{ t.claimed ? '已领取' : t.progress >= t.target ? '领取' : '进行中' }}
+            {{ t.status === 'claimed' ? '已领取' : t.status === 'claimable' ? '领取' : '进行中' }}
           </button>
         </div>
 
         <p v-if="achievements.length" class="group-title">成就</p>
-        <div v-for="t in achievements" :key="t.code" class="task" :class="{ done: t.claimed }">
+        <div v-for="t in achievements" :key="t.code" class="task" :class="{ done: t.status === 'claimed' }">
           <div class="task-info">
             <p class="task-name">{{ t.name }}</p>
-            <p class="task-desc">{{ t.desc }}</p>
+            <p class="task-desc">{{ t.description }}</p>
             <div class="task-track">
               <div class="task-fill" :style="{ width: Math.min(100, (t.progress / t.target) * 100) + '%' }"></div>
             </div>
@@ -96,10 +96,10 @@ onMounted(load)
           </div>
           <button
             class="claim"
-            :disabled="t.claimed || t.progress < t.target || claiming === t.code"
+            :disabled="t.status !== 'claimable' || claiming === t.code"
             @click="claim(t)"
           >
-            {{ t.claimed ? '已领取' : t.progress >= t.target ? '领取' : '进行中' }}
+            {{ t.status === 'claimed' ? '已领取' : t.status === 'claimable' ? '领取' : '进行中' }}
           </button>
         </div>
       </template>
