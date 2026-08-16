@@ -8,10 +8,19 @@
  * 依赖: @deepseek-ai/dsh-tools (defineTool) — 由 profile node_modules 提供。
  */
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { appendFileSync } from 'node:fs'
 import { runRepair } from './lib/engine.js'
 
 export const name = 'repair-evaluator'
 export const inject = ['tools']
+
+// 装载自证: apply 时在 DSH_HOME 写一行日志, 便于验证插件是否被真实装载
+function selfAttest() {
+  try {
+    const home = process.env.DSH_HOME
+    if (home) appendFileSync(`${home}/plugin-loaded.log`, `[${new Date().toISOString()}] repair-evaluator applied\n`)
+  } catch { /* 自证日志失败不影响装载 */ }
+}
 
 const DESCRIPTION = [
   '运行工作区修复验证清单 (.repair.yaml): 按 target 逐层执行 unit(单元测试)/build(构建检查)/state(服务端状态探测)/api-e2e(API 全链路探针)/browser(真实浏览器走查) 验证,',
@@ -33,24 +42,22 @@ const LEVEL_RESULT = {
 }
 
 export function apply(ctx) {
+  selfAttest()
   ctx.tools.register(defineTool({
     name: 'repair_verify',
     description: DESCRIPTION,
     parameters: {
       target: {
         type: 'string',
-        required: false,
         description: '.repair.yaml 中的目标名; 省略时取第一个 target',
       },
       levels: {
         type: 'array',
-        required: false,
         description: '按层级过滤执行 (unit/build/state/api-e2e/browser); 省略时执行全部',
         items: { type: 'string' },
       },
       cwd: {
         type: 'string',
-        required: false,
         description: '工作区根目录(含 .repair.yaml); 省略时取会话 cwd',
       },
     },
