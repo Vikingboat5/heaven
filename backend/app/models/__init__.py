@@ -1,0 +1,137 @@
+"""数据模型 (Sprint 2)
+
+Sprint 2 变更:
+- User 增加 last_seen_at (离线时长判定, 冒险模拟触发依据)
+- Pet 增加 exp / inventory(背包) / state_updated_at (状态惰性衰减锚点)
+- 新增 Task(任务配置, DB 可配置) / UserTaskProgress(用户任务进度)
+"""
+from datetime import datetime
+
+from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from ..database import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(128))
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    last_seen_at: Mapped[datetime | None] = mapped_column(nullable=True)  # 最近活跃(冒险模拟锚点)
+
+    pets: Mapped[list["Pet"]] = relationship(back_populates="owner")
+    eggs: Mapped[list["Egg"]] = relationship(back_populates="owner")
+
+
+class Egg(Base):
+    """宠物蛋: 孵化值满 100 后可孵化"""
+    __tablename__ = "eggs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    rarity: Mapped[str] = mapped_column(String(16), default="normal")  # normal/rare/legendary
+    hatch_value: Mapped[int] = mapped_column(default=0)
+    status: Mapped[str] = mapped_column(String(16), default="incubating")  # incubating/hatched
+    hatch_seed: Mapped[str] = mapped_column(String(64), default="")
+    # 诞生问答答案(Sprint 3): {"weekend":"social","color":"薄荷绿","ip":"皮卡丘",...}
+    quiz_answers: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    hatched_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+    owner: Mapped[User] = relationship(back_populates="eggs")
+
+
+class Pet(Base):
+    __tablename__ = "pets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(32))
+    species: Mapped[str] = mapped_column(String(32))
+    color: Mapped[str] = mapped_column(String(16), default="")
+    rarity: Mapped[str] = mapped_column(String(16), default="normal")
+    # 性格: {"extraversion":45,...,"tags":["傲娇"]}
+    personality: Mapped[dict] = mapped_column(JSON, default=dict)
+    talents: Mapped[list] = mapped_column(JSON, default=list)
+    skills: Mapped[list] = mapped_column(JSON, default=list)
+    # 状态: {"mood":70,"satiety":80,"energy":90}
+    state: Mapped[dict] = mapped_column(JSON, default=dict)
+    state_updated_at: Mapped[datetime | None] = mapped_column(nullable=True)  # 惰性衰减锚点
+    level: Mapped[int] = mapped_column(default=1)
+    exp: Mapped[int] = mapped_column(default=0)
+    inventory: Mapped[list] = mapped_column(JSON, default=list)  # [{"item":"浆果","count":2}]
+    hatch_seed: Mapped[str] = mapped_column(String(64), default="")
+    # 生成形象 (Sprint 3): pending/ready/failed; style 为画风路由键; appearance 为外观描述词
+    sprite_status: Mapped[str] = mapped_column(String(16), default="")
+    sprite_style: Mapped[str] = mapped_column(String(16), default="")
+    appearance: Mapped[str] = mapped_column(String(256), default="")
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    owner: Mapped[User] = relationship(back_populates="pets")
+
+
+class ChatMessage(Base):
+    """对话消息: 短期记忆来源, 也是事实抽取的原始素材"""
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id"), index=True)
+    role: Mapped[str] = mapped_column(String(16))  # user / assistant
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class FactMemory(Base):
+    """结构化事实记忆: 从对话中抽取的关于主人的事实"""
+    __tablename__ = "fact_memories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id"), index=True)
+    fact: Mapped[str] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(32), default="general")
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class AdventureLog(Base):
+    """冒险日志: 离线探险的事件序列 + LLM 润色后的叙事"""
+    __tablename__ = "adventure_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id"), index=True)
+    events: Mapped[list] = mapped_column(JSON, default=list)
+    narrative: Mapped[str] = mapped_column(Text, default="")
+    rewards: Mapped[dict] = mapped_column(JSON, default=dict)
+    started_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    ended_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+
+class Task(Base):
+    """任务配置表 (DB 可配置, 启动时从 gamedata.TASK_CONFIG 幂等播种)"""
+    __tablename__ = "tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(String(128), default="")
+    type: Mapped[str] = mapped_column(String(16))          # daily / achievement
+    event: Mapped[str] = mapped_column(String(32))         # 触发事件: chat/care/hatch/feed/adventure
+    target: Mapped[int] = mapped_column(Integer, default=1)
+    # 奖励: {"type":"hatch_value|exp|item","value":10,"item_name":"幸运符"}
+    reward: Mapped[dict] = mapped_column(JSON, default=dict)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class UserTaskProgress(Base):
+    """用户任务进度: daily 任务按 period(日期) 重置"""
+    __tablename__ = "user_task_progress"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    task_code: Mapped[str] = mapped_column(String(32), index=True)
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(16), default="active")  # active/claimable/claimed
+    period: Mapped[str] = mapped_column(String(10), default="")        # daily: YYYY-MM-DD
+    claimed_at: Mapped[datetime | None] = mapped_column(nullable=True)

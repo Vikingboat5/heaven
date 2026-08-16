@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Env & secrets
+.env
+!.env.example
+.e2e_account
+
+# Logs
+logs/*.jsonl
+logs/*.log
+
+# ç”Ÿæˆäº§ç‰© (å¯é‡æ–°ç”Ÿæˆ)
+backend/static/pets/
+*.tsbuildinfo
+.gstack/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ±¾µØ Claude ÅäÖÃ (º¬Æ¾¾İ)
+.claude/settings.local.json

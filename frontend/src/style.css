@@ -1,0 +1,29 @@
+:root {
+  /* 黄昏插画色系 */
+  --color-night: #150c2e;
+  --color-primary: #f2a56e;
+  --color-accent: #e77fa2;
+  --color-gold: #f7c98a;
+  --color-text: #fdf6ec;
+  --color-text-dim: rgba(253, 240, 220, 0.6);
+  --color-text-faint: rgba(253, 240, 220, 0.4);
+  --color-glass: rgba(22, 12, 44, 0.55);
+  --color-glass-border: rgba(255, 255, 255, 0.09);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Yuanti SC', 'YouYuan', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  background: var(--color-night);
+  color: var(--color-text);
+  min-height: 100vh;
+}

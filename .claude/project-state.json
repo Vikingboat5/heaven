@@ -1,0 +1,76 @@
+{
+ "projectId": "pet-paradise-001",
+ "name": "宠物乐园 (Pet Paradise)",
+ "vision": "旅行青蛙 × AI Agent——一只真正「活着」的宠物：离线自主生活+冒险日志的惊喜与牵挂，AI对话是升级",
+ "northStarDoc": "docs/vision/product-vision-v1.0.md (2026-08-09 与负责人对齐确认，最高准绳)",
+ "mvpSpecDoc": "docs/spec/mvp-spec-v1.0.md (2026-08-09, V1.0 需求与实现方式唯一依据, D1-D7 全部拍板)",
+ "status": "in_progress",
+ "phase": "sprint-2-done",
+ "createdAt": "2026-07-17",
+ "updatedAt": "2026-08-09",
+ "fundamentalDecisions": {
+  "projectGoal": "真实上线的产品 (国内 18+, 要过合规/内测/留存指标)",
+  "productSoul": "「它活着」——旅行青蛙式离线自主生活 + AI 对话升级; 灵魂指标=冒险日志查看率>70%",
+  "mvpBoundary": "单机版: 养成+对话+探险; 砍掉全部社交(好友/互访/结伴→V1.1)",
+  "futureDirections": "V1.2 候选: 带主人文字冒险/结伴冒险; V2.0 候选: 宠物PK (负责人提出, 已记蓝图backlog)"
+ },
+ "confirmedDecisions": {
+  "Q1_platform": "Web PWA (vite-plugin-pwa)",
+  "Q2_llm": "火山引擎 Ark / 豆包 (生产); 开发阶段用 plan 代理 kimi-k3",
+  "Q3_team": "单人全栈",
+  "Q4_region": "国内, 18+",
+  "Q5_monetization": "免费 + 内购预留 (MVP不实现付费)",
+  "Q6_timeline": "2026-08-09 校准: Sprint3 ~1.5周 + Sprint4 ~2周, V1.0 内测预计 2026-09 上旬"
+ },
+ "techStack": {
+  "frontend": "Vue3 + Vite + TypeScript + Pinia + vue-router + vite-plugin-pwa",
+  "backend": "Python 3.11 + FastAPI + SQLAlchemy 2.0 + Alembic + Celery",
+  "data": "PostgreSQL 16 (docker) + Redis 7 (docker)",
+  "llm": "OpenAI兼容抽象层 → Ark (开发: kimi-k3 via plan代理; 生产: doubao, 待用户申请标准API key)"
+ },
+ "environment": {
+  "python": "3.11.9 OK",
+  "node": "v24.12.0 OK (C:\\Program Files\\nodejs, 未入bash PATH)",
+  "docker": "复用本机容器 pet_heaven_postgres(PG15, 库 pet_paradise) + pet_heaven_redis",
+  "arkPlanProxy": "已实测连通 (kimi-k3), 仅支持 /api/plan/v1 端点",
+  "arkStandardKey": "⚠️ 待用户申请 (console.volcengine.com), 阻塞「对话首token<2s」指标",
+  "knownIssue": "本机 PYTHONPATH 污染, 运行须从 backend/ 目录启动; Vite 须绑 127.0.0.1"
+ },
+ "sprints": {
+  "sprint1": {
+   "goal": "宠物生命周期: 领蛋→孵化→随机生成→性格对话",
+   "status": "completed (2026-07-21)",
+   "evidence": "注册送蛋/照料15次日限3/孵化满100/种子化生成/对话SSE+历史落库/家园SVG三阶段UI, 30 pytest + 浏览器全流程通过"
+  },
+  "sprint2": {
+   "goal": "互动与探险: 任务/情绪需求/事实记忆/行为引擎/冒险日志/内容安全",
+   "status": "completed (2026-08-02)",
+   "evidence": "TASK_CONFIG 6任务可领取/惰性衰减(4·3/小时,下限5)/feed+30 rest+40/事实记忆异步抽取注入/simulate_offline 45分钟tick零LLM/34事件5区域/日志LLM润色+模板降级/双向敏感词过滤; 46 pytest; 浏览器验证任务面板+冒险时间线+回归卡片"
+  },
+  "sprint3": {
+   "goal": "生产化+诞生升级: 问答引导+生图专属宠物 / 回归通知+主动搭话 / 轮次限制(10/日)+成本熔断提示 / pytest修复 / 推远程仓库",
+   "status": "pending",
+   "note": "2026-08-09 按蓝图+spec重定义: 社交全砍至V1.1; Celery Beat 砍掉(惰性补算等价); 新增问答引导+动态宠物生图(plan key 已实测打通 /api/plan/v3: seedream-5.0-lite 生图 + seedance-2.0-mini 图生视频, TOS URL 24h 过期须本地下载)"
+  },
+  "sprint4": {
+   "goal": "打磨与内测: 新手引导/安全加固/性能(换标准key)/埋点/内测20-50人",
+   "status": "pending"
+  }
+ },
+ "openIssues": [
+  "pytest 全量偶发挂起 (test_state 修复后未复跑确认, 曾 60s 无输出被中止)",
+  "plan key 延迟 8-15s, 上线前需换标准 key (backend/.env 注释有切换步骤)",
+  "代码未推远程仓库 (单点风险)",
+  "合规未启动: ICP备案/生成式AI算法备案 (用户事项, 周期长需尽早)"
+ ],
+ "testAccount": {
+  "username": "demo_46746",
+  "pet": "小芒果 (暖棕垂耳兔, 话痨, 天赋好奇心, 技能攀树)"
+ },
+ "nextActions": [
+  "启动 Sprint 3 生产化 (离线调度器/通知/成本熔断)",
+  "用户申请标准 Ark API key",
+  "用户启动 ICP 备案与生成式AI备案",
+  "代码推送到私有远程仓库"
+ ]
+}

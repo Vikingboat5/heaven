@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>PNG 序列帧演示 — 像素风招手</title>
+<style>
+  body {
+    margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 24px;
+    font-family: system-ui, sans-serif;
+    /* 模拟游戏黄昏场景 */
+    background: linear-gradient(180deg, #150c2e 0%, #3d1d4e 45%, #b4552d 75%, #e8963f 100%);
+  }
+  .stage { position: relative; width: 340px; height: 340px; }
+  /* 地面投影, 随呼吸缩放 */
+  .shadow {
+    position: absolute; bottom: 18px; left: 50%; width: 150px; height: 22px;
+    background: rgba(0,0,0,.35); border-radius: 50%;
+    transform: translateX(-50%);
+    animation: shadow-breathe 2.8s ease-in-out infinite;
+  }
+  #pet {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    image-rendering: pixelated;  /* 像素风关键: 禁止平滑缩放 */
+    animation: breathe 2.8s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes shadow-breathe {
+    0%, 100% { transform: translateX(-50%) scaleX(1); opacity: .35; }
+    50% { transform: translateX(-50%) scaleX(.88); opacity: .25; }
+  }
+  .info { color: #ffe9d0; text-align: center; line-height: 1.8; }
+  .info h1 { font-size: 18px; margin: 0; }
+  .info p { font-size: 13px; opacity: .75; margin: 4px 0 0; }
+  .toggle {
+    color: #ffe9d0; font-size: 12px; opacity: .8; cursor: pointer;
+    border: 1px solid rgba(255,233,208,.4); padding: 4px 14px; border-radius: 14px;
+    user-select: none;
+  }
+  body.white { background: #f5f5f5; }
+  body.white .info, body.white .toggle { color: #666; }
+  body.white .shadow { background: rgba(0,0,0,.15); }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="shadow"></div>
+    <img id="pet" src="grid_frame0.png" alt="pet">
+  </div>
+  <div class="info">
+    <h1>PNG 序列帧 · 透明底 · JS 帧切换</h1>
+    <p>8 帧招手循环 140ms/帧 + CSS 呼吸浮动 + 地面投影联动</p>
+  </div>
+  <div class="toggle" onclick="document.body.classList.toggle('white')">切换白底检查边缘</div>
+
+<script>
+  // 与演示 GIF 相同的播放序列: 抬爪 → 举高 → 左右挥 → 放下
+  const SEQ = [0, 1, 2, 3, 4, 5, 6, 5, 4, 5, 6, 7];
+  const FRAME_MS = 140;
+  const img = document.getElementById('pet');
+  // 预加载
+  SEQ.forEach(i => { const p = new Image(); p.src = `grid_frame${i}.png`; });
+  let tick = 0;
+  setInterval(() => {
+    img.src = `grid_frame${SEQ[tick % SEQ.length]}.png`;
+    tick++;
+  }, FRAME_MS);
+</script>
+</body>
+</html>
