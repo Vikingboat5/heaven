@@ -13,7 +13,6 @@ from ..core.gamedata import MAX_SIMULATE_HOURS, MIN_OFFLINE_MINUTES
 from ..llm.gateway import gateway
 from ..models import AdventureLog, Pet, User
 from .state import add_item, gain_exp
-from .tasks import track_event
 
 _POLISH_SYSTEM = "你是宠物冒险日志润色助手。把事件列表改写成150字以内、温馨可爱的第一人称小故事(宠物视角, 可带动作表情)。只输出故事正文。"
 
@@ -102,7 +101,6 @@ async def check_and_simulate(db: Session, user: User) -> AdventureLog | None:
     for item in result.rewards.get("items", []):
         add_item(pet, item)
 
-    track_event(db, user.id, "adventure")
     db.commit()
     db.refresh(log)
     return log

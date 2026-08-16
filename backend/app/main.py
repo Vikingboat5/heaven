@@ -6,10 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .api import adventure, auth, dialogue, eggs, health, pets, quiz, tasks
-from .database import SessionLocal
+from .api import adventure, auth, dialogue, eggs, health, pets, quiz
 from .llm.gateway import gateway
-from .services.tasks import seed_tasks
 
 # 宠物生成素材目录 (以本文件位置锚定, 不依赖启动目录)
 _STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
@@ -18,13 +16,6 @@ _STATIC_DIR.mkdir(exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时播种任务配置(幂等); DB 不可用时跳过, 不阻塞服务启动
-    try:
-        db = SessionLocal()
-        seed_tasks(db)
-        db.close()
-    except Exception:
-        pass
     yield
     await gateway.close()
 
@@ -46,6 +37,5 @@ app.include_router(auth.router)
 app.include_router(eggs.router)
 app.include_router(pets.router)
 app.include_router(dialogue.router)
-app.include_router(tasks.router)
 app.include_router(adventure.router)
 app.include_router(quiz.router)

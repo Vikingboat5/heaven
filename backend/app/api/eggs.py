@@ -9,7 +9,6 @@ from ..models import User
 from ..services import egg as egg_service
 from ..services import quiz as quiz_service
 from ..services.egg import EggError
-from ..services.tasks import track_event
 from .deps import get_current_user
 
 router = APIRouter(prefix="/api/eggs", tags=["eggs"])
@@ -63,7 +62,6 @@ def care(db: Session = Depends(get_db), user: User = Depends(get_current_user)) 
         egg = egg_service.care_egg(db, egg)
     except EggError as e:
         raise HTTPException(status_code=429, detail=str(e)) from e
-    track_event(db, user.id, "care")  # T2.1 任务钩子
     db.commit()
     return _to_out(egg)
 
@@ -87,7 +85,6 @@ def hatch(req: HatchIn, background: BackgroundTasks,
         pet = egg_service.hatch_egg(db, egg, name=req.name)
     except EggError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    track_event(db, user.id, "hatch")  # T2.1 任务钩子
     # 诞生形象: 后台异步生成(S3.3), 接口立即返回, 前端轮询 sprite_status
     pet.sprite_status = "pending"
     db.commit()

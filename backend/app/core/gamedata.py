@@ -75,24 +75,6 @@ REGISTRATION_EGG_RARITY = "normal"  # 注册赠送蛋的稀有度(可配置)
 
 # ================= Sprint 2 =================
 
-# ---- 任务配置 (启动时播种到 tasks 表; 改配置后重启生效, 已存在的 code 不覆盖) ----
-TASK_CONFIG: list[dict] = [
-    # 日常任务
-    {"code": "daily_chat", "name": "陪伴时光", "description": "和宠物对话 3 次", "type": "daily",
-     "event": "chat", "target": 3, "reward": {"type": "exp", "value": 15}},
-    {"code": "daily_care", "name": "细心照料", "description": "照料宠物蛋 1 次", "type": "daily",
-     "event": "care", "target": 1, "reward": {"type": "hatch_value", "value": 10}},
-    {"code": "daily_feed", "name": "按时开饭", "description": "给宠物喂食 1 次", "type": "daily",
-     "event": "feed", "target": 1, "reward": {"type": "exp", "value": 10}},
-    # 成就任务
-    {"code": "ach_first_hatch", "name": "初次相遇", "description": "孵化第一只宠物", "type": "achievement",
-     "event": "hatch", "target": 1, "reward": {"type": "item", "value": 1, "item_name": "幸运符"}},
-    {"code": "ach_chat_50", "name": "无话不谈", "description": "累计对话 50 次", "type": "achievement",
-     "event": "chat", "target": 50, "reward": {"type": "item", "value": 1, "item_name": "金铃铛"}},
-    {"code": "ach_first_adventure", "name": "小小冒险家", "description": "完成第一次冒险", "type": "achievement",
-     "event": "adventure", "target": 1, "reward": {"type": "exp", "value": 30}},
-]
-
 # ---- 状态衰减 (T2.2 惰性衰减: 读取时按 elapsed 计算, 不需要调度器) ----
 DECAY_PER_HOUR = {"satiety": 4.0, "energy": 3.0}  # 每小时衰减
 MOOD_DRIFT_PER_HOUR = 2.0   # 心情每小时向 50 基准回归

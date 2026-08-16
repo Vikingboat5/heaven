@@ -20,7 +20,6 @@ from ..database import get_db
 from ..llm.gateway import BudgetExceeded, gateway
 from ..models import ChatMessage, FactMemory, User
 from ..services import memory, state as state_service
-from ..services.tasks import track_event
 from .deps import get_current_user
 from .pets import get_my_pet
 
@@ -116,12 +115,11 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db), user: User = Dep
     messages += [{"role": r.role, "content": r.content} for r in history_rows]
     messages.append({"role": "user", "content": req.message})
 
-    # 持久化用户消息 + 互动提升心情 + 任务事件
+    # 持久化用户消息 + 互动提升心情
     db.add(ChatMessage(pet_id=pet.id, role="user", content=req.message))
     new_state = dict(pet.state or {})
     new_state["mood"] = min(100, int(new_state.get("mood", 70)) + _MOOD_PER_CHAT)
     pet.state = new_state
-    track_event(db, user.id, "chat")
     db.commit()
 
     fallback = safety.fallback_for(persona.tags)

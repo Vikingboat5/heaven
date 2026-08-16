@@ -106,32 +106,3 @@ class AdventureLog(Base):
     rewards: Mapped[dict] = mapped_column(JSON, default=dict)
     started_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     ended_at: Mapped[datetime | None] = mapped_column(nullable=True)
-
-
-class Task(Base):
-    """任务配置表 (DB 可配置, 启动时从 gamedata.TASK_CONFIG 幂等播种)"""
-    __tablename__ = "tasks"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
-    name: Mapped[str] = mapped_column(String(32))
-    description: Mapped[str] = mapped_column(String(128), default="")
-    type: Mapped[str] = mapped_column(String(16))          # daily / achievement
-    event: Mapped[str] = mapped_column(String(32))         # 触发事件: chat/care/hatch/feed/adventure
-    target: Mapped[int] = mapped_column(Integer, default=1)
-    # 奖励: {"type":"hatch_value|exp|item","value":10,"item_name":"幸运符"}
-    reward: Mapped[dict] = mapped_column(JSON, default=dict)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-
-
-class UserTaskProgress(Base):
-    """用户任务进度: daily 任务按 period(日期) 重置"""
-    __tablename__ = "user_task_progress"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    task_code: Mapped[str] = mapped_column(String(32), index=True)
-    progress: Mapped[int] = mapped_column(Integer, default=0)
-    status: Mapped[str] = mapped_column(String(16), default="active")  # active/claimable/claimed
-    period: Mapped[str] = mapped_column(String(10), default="")        # daily: YYYY-MM-DD
-    claimed_at: Mapped[datetime | None] = mapped_column(nullable=True)

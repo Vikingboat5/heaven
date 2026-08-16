@@ -55,16 +55,6 @@ export interface PetOut {
   sprite_status: string
   sprite_style: string
 }
-export interface TaskOut {
-  code: string
-  name: string
-  description: string
-  type: string
-  progress: number
-  target: number
-  status: 'active' | 'claimable' | 'claimed'
-  reward: { type: string; value: number; item_name?: string }
-}
 export interface AdventureLogOut {
   id: number
   title?: string | null
@@ -129,11 +119,6 @@ export const api = {
   hatchEgg: (name?: string) =>
     request<PetOut>('/api/eggs/hatch', { method: 'POST', body: JSON.stringify({ name: name || null }) }),
   getMyPet: () => request<PetOut | null>('/api/pets/me'),
-  feedPet: () => request<PetOut>('/api/pets/feed', { method: 'POST' }),
-  restPet: () => request<PetOut>('/api/pets/rest', { method: 'POST' }),
-  getTasks: () => request<{ tasks: TaskOut[] }>('/api/tasks'),
-  claimTask: (code: string) =>
-    request<{ ok: boolean; granted: TaskOut['reward'] }>(`/api/tasks/${code}/claim`, { method: 'POST' }),
   getQuiz: () => request<QuizQuestion[]>('/api/quiz'),
   submitQuiz: (answers: Record<string, string>) =>
     request<EggOut>('/api/eggs/quiz', { method: 'POST', body: JSON.stringify({ answers }) }),

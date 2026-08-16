@@ -3,7 +3,6 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ApiError, type AdventureLogOut, type EggOut, type PetOut } from '../api/client'
 import PetSprite from '../components/PetSprite.vue'
-import TasksPanel from '../components/TasksPanel.vue'
 
 const router = useRouter()
 
@@ -15,7 +14,6 @@ const pet = ref<PetOut | null>(null)
 const hatchName = ref('')
 const busy = ref(false)
 const toast = ref('')
-const showTasks = ref(false)
 const returnLog = ref<AdventureLogOut | null>(null)
 
 // 孵化进度驱动蛋的摇晃动画 (保留原交互: >30 开始摇晃)
@@ -124,32 +122,6 @@ async function hatch() {
     if (pet.value.sprite_status === 'pending') pollSprite()
   } catch (err) {
     showToast(err instanceof ApiError ? err.message : '孵化失败')
-  } finally {
-    busy.value = false
-  }
-}
-
-async function feed() {
-  if (busy.value) return
-  busy.value = true
-  try {
-    pet.value = await api.feedPet()
-    showToast(`${pet.value.name}吃得很开心, 饱食+30`)
-  } catch (err) {
-    showToast(err instanceof ApiError ? err.message : '喂食失败')
-  } finally {
-    busy.value = false
-  }
-}
-
-async function rest() {
-  if (busy.value) return
-  busy.value = true
-  try {
-    pet.value = await api.restPet()
-    showToast(`${pet.value.name}睡了一觉, 精力+40`)
-  } catch (err) {
-    showToast(err instanceof ApiError ? err.message : '休息失败')
   } finally {
     busy.value = false
   }
@@ -498,9 +470,6 @@ onMounted(async () => {
         <router-link to="/chat" class="cta">和「{{ pet.name }}」聊聊</router-link>
 
         <div class="action-row">
-          <button class="action-btn" :disabled="busy" @click="feed">喂食</button>
-          <button class="action-btn" :disabled="busy" @click="rest">休息</button>
-          <button class="action-btn" @click="showTasks = true">任务</button>
           <router-link to="/adventure" class="action-btn">冒险日志</router-link>
         </div>
       </template>
@@ -520,9 +489,6 @@ onMounted(async () => {
         <button class="cta" @click="returnLog = null">太好啦</button>
       </div>
     </div>
-
-    <!-- 任务面板 -->
-    <TasksPanel v-if="showTasks" @close="showTasks = false" />
 
     <!-- 轻提示 -->
     <div v-if="toast" class="toast">{{ toast }}</div>
