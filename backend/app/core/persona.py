@@ -41,25 +41,6 @@ class Personality:
         )
 
 
-@dataclass
-class PetState:
-    """宠物当前状态, 0-100"""
-    mood: int = 70      # 心情
-    satiety: int = 80   # 饱食
-    energy: int = 90    # 精力
-
-    def to_dict(self) -> dict:
-        return {"mood": self.mood, "satiety": self.satiety, "energy": self.energy}
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "PetState":
-        return cls(
-            mood=int(data.get("mood", 70)),
-            satiety=int(data.get("satiety", 80)),
-            energy=int(data.get("energy", 90)),
-        )
-
-
 def _band(value: int) -> str:
     if value >= 67:
         return "high"
@@ -123,30 +104,14 @@ _TAG_SHORT: dict[str, str] = {
     "戏精": "戏精:语气夸张,爱给自己加戏",
 }
 
-_STATE_SHORT = {
-    "mood_low": "心情低落,需要安慰",
-    "mood_high": "心情很好",
-    "hungry": "肚子饿,想要吃的",
-    "tired": "很困,想睡觉",
-}
-
-_STATE_TEXT = {
-    "mood_low": "现在心情不太好, 语气低落, 需要主人安慰",
-    "mood_high": "现在心情很好, 语气轻快",
-    "hungry": "现在肚子很饿, 会不自觉想到吃的, 想跟主人要食物",
-    "tired": "现在很困很累, 说话有气无力, 想睡觉",
-}
-
 
 def build_system_prompt(
     name: str,
     species: str,
     personality: Personality,
-    state: PetState | None = None,
     owner_facts: list[str] | None = None,
 ) -> str:
     """构建宠物对话的 system prompt"""
-    state = state or PetState()
     lines: list[str] = [
         f"你是一只名叫「{name}」的宠物({species}), 正在和自己的主人对话。",
         "",
@@ -160,18 +125,6 @@ def build_system_prompt(
     for tag in personality.tags:
         if tag in _TAG_TEXT:
             lines.append(f"- {_TAG_TEXT[tag]}")
-
-    state_hints: list[str] = []
-    if state.mood <= 33:
-        state_hints.append(_STATE_TEXT["mood_low"])
-    elif state.mood >= 67:
-        state_hints.append(_STATE_TEXT["mood_high"])
-    if state.satiety <= 33:
-        state_hints.append(_STATE_TEXT["hungry"])
-    if state.energy <= 33:
-        state_hints.append(_STATE_TEXT["tired"])
-    if state_hints:
-        lines += ["", "【你现在的状态】"] + [f"- {h}" for h in state_hints]
 
     if owner_facts:
         lines += ["", "【你记得的关于主人的事】"] + [f"- {f}" for f in owner_facts]
@@ -193,7 +146,6 @@ def build_system_prompt_compact(
     name: str,
     species: str,
     personality: Personality,
-    state: PetState | None = None,
     owner_facts: list[str] | None = None,
 ) -> str:
     """压缩版 system prompt (~100字符)
@@ -202,7 +154,6 @@ def build_system_prompt_compact(
     显著增长(408字符≈26s vs 74字符≈17s)。压缩版性格质量无明显损失, 且输入
     token 省 ~60%, 作为对话接口的默认模式。
     """
-    state = state or PetState()
     dims = ",".join(
         [
             _DIMENSION_SHORT["extraversion"][_band(personality.extraversion)],
@@ -216,18 +167,6 @@ def build_system_prompt_compact(
     for tag in personality.tags:
         if tag in _TAG_SHORT:
             parts.append(_TAG_SHORT[tag] + "。")
-
-    state_hints: list[str] = []
-    if state.mood <= 33:
-        state_hints.append(_STATE_SHORT["mood_low"])
-    elif state.mood >= 67:
-        state_hints.append(_STATE_SHORT["mood_high"])
-    if state.satiety <= 33:
-        state_hints.append(_STATE_SHORT["hungry"])
-    if state.energy <= 33:
-        state_hints.append(_STATE_SHORT["tired"])
-    if state_hints:
-        parts.append("现在" + ",".join(state_hints) + "。")
 
     if owner_facts:
         parts.append("你记得:" + ";".join(owner_facts) + "。")

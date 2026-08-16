@@ -46,16 +46,6 @@ function pollSprite() {
   }, 3000)
 }
 
-// 宠物状态条 (心情/饱食/精力)
-const stateBars = computed(() => {
-  const s = pet.value?.state ?? {}
-  return [
-    { key: 'mood', label: '心情', value: s.mood ?? 0, color: '#f2b06e' },
-    { key: 'satiety', label: '饱食', value: s.satiety ?? 0, color: '#a8e6b8' },
-    { key: 'energy', label: '精力', value: s.energy ?? 0, color: '#a8d8ff' },
-  ]
-})
-
 function showToast(msg: string) {
   toast.value = msg
   setTimeout(() => (toast.value = ''), 2600)
@@ -448,20 +438,6 @@ onMounted(async () => {
           <span v-for="tag in pet.personality.tags" :key="tag" class="chip">{{ tag }}</span>
         </div>
         <p v-if="spritePending" class="hint">✨ {{ pet.name }}的专属形象正在成形中…</p>
-
-        <!-- 状态条 -->
-        <div class="state-bars">
-          <div v-for="bar in stateBars" :key="bar.key" class="state-bar">
-            <span class="state-label">{{ bar.label }}</span>
-            <div class="state-track">
-              <div
-                class="state-fill"
-                :style="{ width: bar.value + '%', background: bar.color }"
-              ></div>
-            </div>
-            <span class="state-value">{{ bar.value }}</span>
-          </div>
-        </div>
 
         <p class="hint">
           天赋：{{ pet.talents.map((t) => t.name).join('、') }} ｜ 技能：{{ pet.skills.map((s) => s.name).join('、') }}

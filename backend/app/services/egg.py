@@ -74,7 +74,6 @@ def hatch_egg(db: Session, egg: Egg, name: str | None = None) -> Pet:
         personality=generated.personality,
         talents=generated.talents,
         skills=generated.skills,
-        state={"mood": 70, "satiety": 80, "energy": 90},
         hatch_seed=egg.hatch_seed,
     )
     db.add(pet)

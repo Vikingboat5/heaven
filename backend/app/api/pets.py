@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Pet, User
-from ..services import state as state_service
 from .deps import get_current_user
 
 router = APIRouter(prefix="/api/pets", tags=["pets"])
@@ -38,6 +37,4 @@ def my_pet(db: Session = Depends(get_db), user: User = Depends(get_current_user)
     pet = get_my_pet(db, user)
     if pet is None:
         return None
-    state_service.apply_lazy_decay(db, pet)  # T2.2 读取时惰性结算衰减
-    db.refresh(pet)
     return pet_to_out(pet)

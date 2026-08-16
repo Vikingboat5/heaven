@@ -1,7 +1,6 @@
 """性格系统单元测试"""
 from backend.app.core.persona import (
     Personality,
-    PetState,
     build_system_prompt,
     build_system_prompt_compact,
 )
@@ -16,11 +15,6 @@ def test_personality_dict_roundtrip():
 def test_personality_from_dict_defaults():
     p = Personality.from_dict({})
     assert p == Personality()
-
-
-def test_state_dict_roundtrip():
-    s = PetState(mood=10, satiety=20, energy=30)
-    assert PetState.from_dict(s.to_dict()) == s
 
 
 def test_compact_prompt_shorter_and_keeps_tags():
@@ -39,14 +33,6 @@ def test_prompt_contains_personality_descriptions():
     assert "嘴上不饶人" in prompt
     assert "傲娇" in prompt
     assert "团子" in prompt
-
-
-def test_prompt_reflects_state():
-    p = Personality()
-    prompt = build_system_prompt("团子", "小狐狸", p, state=PetState(mood=10, satiety=20, energy=90))
-    assert "心情不太好" in prompt
-    assert "肚子很饿" in prompt
-    assert "很困" not in prompt
 
 
 def test_prompt_includes_owner_facts():

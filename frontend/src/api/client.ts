@@ -48,7 +48,6 @@ export interface PetOut {
   personality: { tags: string[]; [key: string]: unknown }
   talents: TalentOut[]
   skills: SkillOut[]
-  state: Record<string, number>
   level: number
   exp: number
   inventory: { item: string; count: number }[]

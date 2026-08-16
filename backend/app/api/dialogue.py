@@ -15,18 +15,17 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..core import safety
-from ..core.persona import Personality, PetState, build_system_prompt_compact
+from ..core.persona import Personality, build_system_prompt_compact
 from ..database import get_db
 from ..llm.gateway import BudgetExceeded, gateway
 from ..models import ChatMessage, FactMemory, User
-from ..services import memory, state as state_service
+from ..services import memory
 from .deps import get_current_user
 from .pets import get_my_pet
 
 router = APIRouter(prefix="/api/dialogue", tags=["dialogue"])
 
 _HISTORY_LIMIT = 10      # 短期记忆轮次
-_MOOD_PER_CHAT = 2       # 每次对话心情提升
 _FACTS_LIMIT = 10
 _DISPLAY_LIMIT = 50      # 历史回显条数(前端拉取, 切页不丢)
 # 输出侧滚动截留窗口: 必须 >= 最长敏感词, 保证任何敏感词在放行前被完整看到
@@ -70,8 +69,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db), user: User = Dep
     if pet is None:
         raise HTTPException(status_code=400, detail="你还没有宠物, 先去孵化宠物蛋吧")
 
-    state_service.apply_lazy_decay(db, pet)
-    db.refresh(pet)
     persona = Personality.from_dict(pet.personality or {})
 
     # ---- 输入侧安全: 命中则不调用 LLM, 直接下发性格化兜底 ----
@@ -86,7 +83,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db), user: User = Dep
 
         return StreamingResponse(refusal_stream(), media_type="text/event-stream")
 
-    state = PetState.from_dict(pet.state or {})
     facts = [
         row.fact
         for row in db.query(FactMemory)
@@ -108,18 +104,14 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db), user: User = Dep
         name=pet.name,
         species=pet.species,
         personality=persona,
-        state=state,
         owner_facts=facts or None,
     )
     messages = [{"role": "system", "content": system_prompt}]
     messages += [{"role": r.role, "content": r.content} for r in history_rows]
     messages.append({"role": "user", "content": req.message})
 
-    # 持久化用户消息 + 互动提升心情
+    # 持久化用户消息
     db.add(ChatMessage(pet_id=pet.id, role="user", content=req.message))
-    new_state = dict(pet.state or {})
-    new_state["mood"] = min(100, int(new_state.get("mood", 70)) + _MOOD_PER_CHAT)
-    pet.state = new_state
     db.commit()
 
     fallback = safety.fallback_for(persona.tags)

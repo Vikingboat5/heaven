@@ -77,7 +77,6 @@ async def check_and_simulate(db: Session, user: User) -> AdventureLog | None:
         personality=pet.personality or {},
         talents=pet.talents or [],
         level=pet.level,
-        state=pet.state or {},
         start=start,
         end=end,
         seed=f"{pet.hatch_seed}:{pet.id}",
@@ -94,9 +93,7 @@ async def check_and_simulate(db: Session, user: User) -> AdventureLog | None:
     )
     db.add(log)
 
-    # 结算: 状态 / 经验(含升级) / 背包
-    pet.state = result.final_state
-    pet.state_updated_at = now
+    # 结算: 经验(含升级) / 背包
     gain_exp(pet, int(result.rewards.get("exp", 0)))
     for item in result.rewards.get("items", []):
         add_item(pet, item)

@@ -91,7 +91,6 @@ def test_full_hatch_flow(api_client, db):
     assert 1 <= len(pet["personality"]["tags"]) <= 2
     assert len(pet["talents"]) >= 1
     assert len(pet["skills"]) == 1
-    assert pet["state"] == {"mood": 70, "satiety": 80, "energy": 90}
 
     # 蛋状态变为已孵化, current 返回空
     assert api_client.get("/api/eggs/current", headers=_auth(token)).json() is None
