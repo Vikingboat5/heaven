@@ -15,6 +15,7 @@ const listEl = ref<HTMLElement>()
 const petName = ref('')
 const petTags = ref<string[]>([])
 const hasPet = ref(true) // false 时提示先去孵化
+const away = ref(false)  // true 时宠物出门旅行中
 const loading = ref(true)
 
 onMounted(async () => {
@@ -23,6 +24,10 @@ onMounted(async () => {
     if (p) {
       petName.value = p.name
       petTags.value = p.personality.tags ?? []
+      if (p.away) {
+        away.value = true
+        return
+      }
       // 对话历史服务端持久化: 挂载时回显, 切换页面回来不丢
       const hist = await api.getChatHistory()
       messages.value = hist.messages.map((m) => ({ role: m.role, content: m.content }))
@@ -89,6 +94,14 @@ async function send() {
         <p class="empty-title">你还没有宠物</p>
         <p class="empty-hint">先回家园把宠物蛋孵化出来吧</p>
         <router-link to="/" class="home-link">回家园 →</router-link>
+      </div>
+
+      <!-- 宠物出门旅行中 -->
+      <div v-else-if="away" class="empty">
+        <div class="empty-egg">🏕️</div>
+        <p class="empty-title">「{{ petName }}」出门旅行啦</p>
+        <p class="empty-hint">等它旅行回来，再陪它聊天吧</p>
+        <router-link to="/" class="home-link">回家园看看 →</router-link>
       </div>
 
       <!-- 空对话状态 -->
@@ -162,7 +175,7 @@ async function send() {
         </div>
       </div>
     </div>
-    <form class="input-bar" @submit.prevent="send">
+    <form v-if="!away" class="input-bar" @submit.prevent="send">
       <input v-model="input" :placeholder="`和${petName || '宠物'}说点什么…`" :disabled="sending || !hasPet" />
       <button type="submit" :disabled="sending || !input.trim() || !hasPet">发送</button>
     </form>

@@ -20,6 +20,7 @@ from ..database import get_db
 from ..llm.gateway import BudgetExceeded, gateway
 from ..models import ChatMessage, FactMemory, User
 from ..services import memory
+from ..services.adventure import is_away
 from .deps import get_current_user
 from .pets import get_my_pet
 
@@ -46,6 +47,8 @@ def history(db: Session = Depends(get_db), user: User = Depends(get_current_user
     pet = get_my_pet(db, user)
     if pet is None:
         raise HTTPException(status_code=400, detail="你还没有宠物, 先去孵化宠物蛋吧")
+    if is_away(pet):
+        raise HTTPException(status_code=409, detail=f"{pet.name}出门旅行啦, 回来再聊吧")
     rows = list(
         reversed(
             db.query(ChatMessage)
@@ -68,6 +71,8 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db), user: User = Dep
     pet = get_my_pet(db, user)
     if pet is None:
         raise HTTPException(status_code=400, detail="你还没有宠物, 先去孵化宠物蛋吧")
+    if is_away(pet):
+        raise HTTPException(status_code=409, detail=f"{pet.name}出门旅行啦, 回来再聊吧")
 
     persona = Personality.from_dict(pet.personality or {})
 

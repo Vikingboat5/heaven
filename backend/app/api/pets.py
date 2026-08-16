@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Pet, User
+from ..services.adventure import is_away
 from .deps import get_current_user
 
 router = APIRouter(prefix="/api/pets", tags=["pets"])
@@ -19,12 +20,13 @@ def pet_to_out(pet: Pet) -> dict:
         "personality": pet.personality,
         "talents": pet.talents,
         "skills": pet.skills,
-        "state": pet.state,
         "level": pet.level,
         "exp": pet.exp,
         "inventory": pet.inventory,
         "sprite_status": pet.sprite_status,
         "sprite_style": pet.sprite_style,
+        "away": is_away(pet),
+        "travel": pet.travel or {},
     }
 
 

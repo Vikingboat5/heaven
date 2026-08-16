@@ -66,3 +66,35 @@ targets:
         name: 清理探针账号 (browser 层之后执行, 用后即清)
         cmd: python scripts/e2e_verify_chat_history.py --cleanup
         timeout_ms: 60000
+
+  travel:
+    levels:
+      - level: unit
+        name: 后端全量测试
+        cmd: python -m pytest tests/ -q
+        cwd: backend
+        timeout_ms: 300000
+
+      - level: build
+        name: 前端类型检查
+        cmd: npx vue-tsc -b
+        cwd: frontend
+        timeout_ms: 180000
+
+      - level: state
+        name: 服务端状态探测
+        probes:
+          - url: http://localhost:8000/api/adventure/leave
+            expect_status: 405
+          - url: http://localhost:8000/api/pets/me
+            expect_status: 401
+
+      - level: api-e2e
+        name: 旅行状态机全链路 (在家→出门→旅行中锁对话→归来带日志→回家)
+        cmd: python scripts/e2e_verify_travel.py
+        timeout_ms: 120000
+
+      - level: api-e2e
+        name: 清理探针账号
+        cmd: python scripts/e2e_verify_travel.py --cleanup
+        timeout_ms: 60000

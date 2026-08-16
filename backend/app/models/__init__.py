@@ -63,6 +63,8 @@ class Pet(Base):
     level: Mapped[int] = mapped_column(default=1)
     exp: Mapped[int] = mapped_column(default=0)
     inventory: Mapped[list] = mapped_column(JSON, default=list)  # [{"item":"浆果","count":2}]
+    # 旅行状态 (P4): {} 在家; {"left_at":iso,"back_at":iso,"dest":"萤火森林"} 旅行中
+    travel: Mapped[dict] = mapped_column(JSON, default=dict)
     hatch_seed: Mapped[str] = mapped_column(String(64), default="")
     # 生成形象 (Sprint 3): pending/ready/failed; style 为画风路由键; appearance 为外观描述词
     sprite_status: Mapped[str] = mapped_column(String(16), default="")

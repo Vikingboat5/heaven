@@ -73,18 +73,38 @@ async function load() {
   }
 }
 
-/** 回端检测: 离线超阈值会触发一次冒险, 有新日志则展示回归卡片 */
+/** 回端检测: 推进旅行状态机 (归来→回归卡片 / 出门→提示 / 旅行中→空房) */
 async function checkReturn() {
   try {
     const r = await api.checkAdventure()
-    if (r.new_log) {
-      returnLog.value = r.new_log
-      // 冒险结算可能改变宠物状态, 重新拉取
+    if (r.event === 'returned' && r.log) {
+      returnLog.value = r.log
+    } else if (r.event === 'left') {
+      showToast(`${pet.value?.name ?? '它'}出门旅行啦`)
+    }
+    // 旅行状态可能变化, 重新拉取宠物
+    const p = await api.getMyPet()
+    if (p) pet.value = p
+  } catch {
+    // 静默: 检测失败不影响主页
+  }
+}
+
+/** 手动送出门 (P4: 旅行青蛙式) */
+async function sendAway() {
+  if (busy.value) return
+  busy.value = true
+  try {
+    const r = await api.leaveAdventure()
+    if (r.ok) {
+      showToast(`${pet.value?.name ?? '它'}背起小包袱出发啦`)
       const p = await api.getMyPet()
       if (p) pet.value = p
     }
-  } catch {
-    // 静默: 检测失败不影响主页
+  } catch (err) {
+    showToast(err instanceof ApiError ? err.message : '出门失败')
+  } finally {
+    busy.value = false
   }
 }
 
@@ -439,15 +459,24 @@ onMounted(async () => {
         </div>
         <p v-if="spritePending" class="hint">✨ {{ pet.name }}的专属形象正在成形中…</p>
 
-        <p class="hint">
-          天赋：{{ pet.talents.map((t) => t.name).join('、') }} ｜ 技能：{{ pet.skills.map((s) => s.name).join('、') }}
-        </p>
-
-        <router-link to="/chat" class="cta">和「{{ pet.name }}」聊聊</router-link>
-
-        <div class="action-row">
-          <router-link to="/adventure" class="action-btn">冒险日志</router-link>
-        </div>
+        <!-- 旅行中: 空房 + 回来倒计时 -->
+        <template v-if="pet.away">
+          <div class="away-note">
+            <p class="away-emoji">🏕️</p>
+            <p class="away-text">「{{ pet.name }}」出门旅行啦</p>
+            <p class="away-sub">去了{{ pet.travel?.dest ?? '远方' }}，玩够了就会自己回来</p>
+          </div>
+        </template>
+        <template v-else>
+          <p class="hint">
+            天赋：{{ pet.talents.map((t) => t.name).join('、') }} ｜ 技能：{{ pet.skills.map((s) => s.name).join('、') }}
+          </p>
+          <router-link to="/chat" class="cta">和「{{ pet.name }}」聊聊</router-link>
+          <div class="action-row">
+            <button class="action-btn" :disabled="busy" @click="sendAway">让它出门走走</button>
+            <router-link to="/adventure" class="action-btn">旅行日记</router-link>
+          </div>
+        </template>
       </template>
     </section>
 
@@ -818,10 +847,20 @@ onMounted(async () => {
 /* 操作按钮组 */
 .action-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin-top: 14px;
 }
+.away-note {
+  margin: 18px 0 6px;
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+.away-emoji { font-size: 34px; margin: 0; }
+.away-text { margin: 8px 0 4px; font-size: 15px; color: var(--color-text); }
+.away-sub { margin: 0; font-size: 12px; color: var(--color-text-faint); }
 .action-btn {
   padding: 9px 0;
   border-radius: 12px;

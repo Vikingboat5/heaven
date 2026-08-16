@@ -53,6 +53,8 @@ export interface PetOut {
   inventory: { item: string; count: number }[]
   sprite_status: string
   sprite_style: string
+  away: boolean
+  travel: Record<string, string>
 }
 export interface AdventureLogOut {
   id: number
@@ -121,7 +123,8 @@ export const api = {
   getQuiz: () => request<QuizQuestion[]>('/api/quiz'),
   submitQuiz: (answers: Record<string, string>) =>
     request<EggOut>('/api/eggs/quiz', { method: 'POST', body: JSON.stringify({ answers }) }),
-  checkAdventure: () => request<{ new_log: AdventureLogOut | null }>('/api/adventure/check'),
+  checkAdventure: () => request<{ event: string; log: AdventureLogOut | null; back_at: string | null }>('/api/adventure/check'),
+  leaveAdventure: () => request<{ ok: boolean; back_at?: string; dest?: string; detail?: string }>('/api/adventure/leave', { method: 'POST' }),
   getAdventureLogs: (limit = 20) => request<{ logs: AdventureLogOut[] }>(`/api/adventure/logs?limit=${limit}`),
   getChatHistory: () => request<ChatHistoryOut>('/api/dialogue/history'),
 }
