@@ -70,6 +70,10 @@ user-invocable: true
 ## 本项目验证速查
 
 ```powershell
+# 一键全层级验证 (首选!): repair_verify 工具按 .repair.yaml 执行 unit/build/state/api-e2e/browser 六段验证
+#   模型侧直接调用 repair_verify (target: chat-history); 无 DSH 时可用独立引擎自测:
+node .dsh-plugins/dsh-repair-evaluator/test-standalone.mjs full
+
 # 后端针对性测试 (SQLite, 不碰真实 DB/生图)
 cd backend; python -m pytest tests/test_birth.py tests/test_api_flow.py -q
 

@@ -110,6 +110,11 @@ async function runBrowserLevel(level, cfg, workspaceRoot) {
       try {
         const result = await client.callTool(step.tool, args, step.timeoutMs ?? 60000)
         text = resultText(result)
+        // 服务端把工具错误当文本返回(MCP error/Unknown argument/validation error 等): 视为步骤失败
+        if (/^(MCP error|Unknown argument|Input validation error|Error[: ])/i.test(text.trim())) {
+          details.push(`[${step.tool}] 服务端错误: ${text.slice(0, 300)}`)
+          return { pass: false, evidence: details.join('\n') }
+        }
         const detail = `[${step.tool}] ${text.slice(0, 200).replace(/\s+/g, ' ')}`
         details.push(detail)
       } catch (err) {

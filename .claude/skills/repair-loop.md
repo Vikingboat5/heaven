@@ -68,6 +68,9 @@ user_invocable: true
 ## 本项目验证速查
 
 ```powershell
+# 一键全层级验证 (首选!): repair_verify 工具按 .repair.yaml 执行 unit/build/state/api-e2e/browser 六段验证
+#   无 DSH 时可用独立引擎自测: node .dsh-plugins/dsh-repair-evaluator/test-standalone.mjs full
+
 # 后端针对性测试 (SQLite, 不碰真实 DB/生图)
 cd backend; python -m pytest tests/test_birth.py tests/test_api_flow.py -q
 
@@ -75,7 +78,7 @@ cd backend; python -m pytest tests/test_birth.py tests/test_api_flow.py -q
 cd frontend; npx vue-tsc -b
 
 # E2E 探针 (真实服务): 注册→快进→孵化→查形象状态→插消息→拉历史→清理
-# 见本会话 2026-08-15 的探针实践: scripts/check_state.py / pet_status.py / cleanup_probe.py
+# 见 scripts/check_state.py / pet_status.py / cleanup_probe.py
 
 # 服务新代码生效确认
 Invoke-WebRequest http://localhost:8000/api/<新接口>   # 期望 401(已注册) 而非 404(旧代码)

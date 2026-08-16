@@ -15,22 +15,25 @@ export class McpStdioClient {
       env: { ...process.env, ...(cfg.env ?? {}) },
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
+      // Windows 上 npx 是 .cmd shim, 无 shell 的 spawn 会 ENOENT
+      shell: process.platform === 'win32',
     })
     const client = new McpStdioClient(child)
-    child.on('error', (err) => client._fail(err))
-    const started = new Promise((resolve, reject) => {
-      client._onExit = () => reject(new Error(`MCP server 提前退出 (exit ${child.exitCode})`))
-      child.on('exit', () => { if (client._onExit) client._onExit() })
-      resolve()
-    })
-    await started
-    await client.request('initialize', {
+
+    // 竞争: spawn 错误 (ENOENT 等) vs initialize 响应
+    const spawnError = new Promise((_, reject) => child.once('error', reject))
+    spawnError.catch(() => {}) // 竞争失败方静默, 避免 unhandled rejection
+
+    const init = client.request('initialize', {
       protocolVersion: cfg.protocolVersion ?? '2025-03-26',
       capabilities: {},
       clientInfo: { name: 'dsh-repair-evaluator', version: '0.1.0' },
-    }, cfg.startupTimeoutMs ?? 60000)
-    client._send({ jsonrpc: '2.0', method: 'notifications/initialized' })
-    return client
+    }, cfg.startupTimeoutMs ?? 60000).then(() => {
+      client._send({ jsonrpc: '2.0', method: 'notifications/initialized' })
+      return client
+    })
+
+    return Promise.race([init, spawnError])
   }
 
   constructor(child) {

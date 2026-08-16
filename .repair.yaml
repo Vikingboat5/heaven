@@ -50,8 +50,8 @@ targets:
               url: http://localhost:5173/chat
           - tool: wait_for
             args:
-              text: 主人你好呀
-              timeout_ms: 20000
+              text: ['主人你好呀']
+              timeout: 20000
           - tool: take_snapshot
             assert:
               text_contains: 主人你好呀

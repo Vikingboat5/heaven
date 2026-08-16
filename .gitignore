@@ -16,6 +16,11 @@ dist-ssr/
 .env
 !.env.example
 .e2e_account
+.e2e-token
+.e2e-username
+
+# æœ¬åœ° Claude é…ç½® (å«å‡­æ®)
+.claude/settings.local.json
 
 # Logs
 logs/*.jsonl
@@ -33,6 +38,3 @@ backend/static/pets/
 # OS
 .DS_Store
 Thumbs.db
-
-# ±¾µØ Claude ÅäÖÃ (º¬Æ¾¾İ)
-.claude/settings.local.json
