@@ -19,7 +19,6 @@ def _pet_with_egg(db, answers=None):
     pet = models.Pet(
         owner_id=u.id, name="团团", species="小狐狸", color="暖棕",
         personality={}, talents=[], skills=[],
-        state={"mood": 70, "satiety": 80, "energy": 90},
         hatch_seed="seed-abc", sprite_status="pending",
     )
     db.add(pet)

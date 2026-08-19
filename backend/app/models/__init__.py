@@ -1,9 +1,8 @@
-"""数据模型 (Sprint 2)
+"""数据模型
 
-Sprint 2 变更:
-- User 增加 last_seen_at (离线时长判定, 冒险模拟触发依据)
-- Pet 增加 exp / inventory(背包) / state_updated_at (状态惰性衰减锚点)
-- 新增 Task(任务配置, DB 可配置) / UserTaskProgress(用户任务进度)
+- User.last_seen_at: 最近活跃(旅行状态机锚点, 离线超阈值自动出门)
+- Pet.exp / inventory(背包/纪念品收藏) / travel(旅行状态)
+- v1.1 简化: 移除 Pet.state(心情/饱食/精力)与 state_updated_at; 移除 Task/UserTaskProgress
 """
 from datetime import datetime
 
@@ -57,9 +56,6 @@ class Pet(Base):
     personality: Mapped[dict] = mapped_column(JSON, default=dict)
     talents: Mapped[list] = mapped_column(JSON, default=list)
     skills: Mapped[list] = mapped_column(JSON, default=list)
-    # 状态: {"mood":70,"satiety":80,"energy":90}
-    state: Mapped[dict] = mapped_column(JSON, default=dict)
-    state_updated_at: Mapped[datetime | None] = mapped_column(nullable=True)  # 惰性衰减锚点
     level: Mapped[int] = mapped_column(default=1)
     exp: Mapped[int] = mapped_column(default=0)
     inventory: Mapped[list] = mapped_column(JSON, default=list)  # [{"item":"浆果","count":2}]

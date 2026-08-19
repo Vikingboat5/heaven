@@ -73,7 +73,7 @@ def simulate_offline(
         # ---- 行为决策 (纯性格 + 天赋加权, 无状态依赖) ----
         weights = {
             "explore": 18 + openness * 0.45 + (12 if ("night_walker" in talent_ids and night) else 0) - (10 if (night and "night_walker" not in talent_ids) else 0),
-            "forage": 12.0,
+            "forage": 12.0 + (8.0 if "good_appetite" in talent_ids else 0.0),
             "socialize": 8 + extraversion * 0.35,
             "play": 10.0,
             "rest": 10.0,
@@ -108,7 +108,8 @@ def simulate_offline(
             result.rewards["items"].append(item)
             event["exp"] = 4
         elif action == "rest":
-            event.update({"text": rng.choice(REST_EVENTS), "exp": 2})
+            # 打盹高手: 休息也能攒灵感, 经验 2→5
+            event.update({"text": rng.choice(REST_EVENTS), "exp": 5 if "nap_master" in talent_ids else 2})
         elif action == "socialize":
             event.update({"text": _fill(rng.choice(SOCIALIZE_EVENTS), rng), "exp": 6})
         else:  # play

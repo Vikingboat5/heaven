@@ -36,24 +36,24 @@ npm run dev
 ```
 
 打开 http://localhost:5173 即可完整体验核心流程：
-注册 → 领蛋 → 诞生问答(6 题) → 照料蛋(2-3 天) → 孵化(后台生成专属动态形象) → 对话 / 喂食 / 任务 / 离线探险。
+注册 → 领蛋 → 诞生问答(6 题) → 照料蛋(2-3 天) → 孵化(后台生成专属动态形象) → 对话 / 旅行(离线自动出门，归来带纪念品和旅行日记)。
 
 ## 目录结构
 
 ```
 ├── backend/
 │   ├── app/
-│   │   ├── api/         # 路由: auth/eggs/pets/dialogue/tasks/adventure/quiz/health
-│   │   ├── core/        # persona(性格→prompt)/gamedata(数值+题库+事件库)/behavior/safety
+│   │   ├── api/         # 路由: auth/eggs/pets/dialogue/adventure/quiz/health
+│   │   ├── core/        # persona(性格→prompt)/gamedata(数值+题库+事件库)/behavior(旅行行为引擎)/safety
 │   │   ├── llm/         # LLM网关: 分层路由 + 预算熔断 + 用量审计
-│   │   ├── models/      # SQLAlchemy 模型 (User/Egg/Pet/ChatMessage/FactMemory/AdventureLog/...)
-│   │   └── services/    # 业务服务: egg/generation/quiz/memory/state/tasks/adventure/
+│   │   ├── models/      # SQLAlchemy 模型 (User/Egg/Pet/ChatMessage/FactMemory/AdventureLog)
+│   │   └── services/    # 业务服务: egg/generation/quiz/memory/state(经验+背包)/adventure(旅行状态机)/
 │   │                    #   petgen(生图管线: 精灵表→切帧→QC→manifest, 原始图落盘可离线 reprocess)
 │   ├── static/pets/{id}/  # 生成产物: raw_sheet + gen_params + frames/ + manifest.json
-│   └── tests/           # pytest (auth/生成/问答/行为/孵化/生图/状态/任务/API 流程)
+│   └── tests/           # pytest (auth/生成/问答/行为/孵化/生图/API 流程)
 ├── frontend/src/
-│   ├── views/           # Home(家园)/Chat(对话)/Adventure(冒险日志)/Quiz(诞生问答)/Login
-│   ├── components/      # PetSprite(序列帧动画, SVG 降级) / TasksPanel
+│   ├── views/           # Home(家园)/Chat(对话)/Adventure(旅行日记)/Quiz(诞生问答)/Login
+│   ├── components/      # PetSprite(序列帧动画, SVG 降级)
 │   ├── stores/          # Pinia auth
 │   └── api/             # REST + SSE 流式客户端
 ├── scripts/             # POC: 性格对话验证 / 成本模拟
@@ -64,18 +64,20 @@ npm run dev
 ## 文档
 
 - [产品终态蓝图 v1.0](docs/vision/product-vision-v1.0.md) — 项目最高准绳
-- [MVP 需求规格 v1.0](docs/spec/mvp-spec-v1.0.md) — V1.0 开发的唯一需求依据
+- [MVP 需求规格](docs/spec/mvp-spec.md) — V1.0 开发的唯一需求依据（当前 v1.1，版本演进见文末变更记录，历史用 `git tag spec-vX.Y` 锚定）
+- [决策记录 ADR](docs/decisions/) — 方向性决策的"为什么"（如 ADR-001 极简重构）
 - [PRD](docs/prd/pet-paradise-prd-v0.1.md)
 - [技术选型](docs/architecture/tech-selection-v0.1.md)
 - [Sprint 规划](docs/sprint/sprint-plan-v0.1.md)
 - [性格对话 POC 结果](docs/poc/poc-dialogue-results.md)
 - [成本基线报告](docs/poc/cost-baseline-report.md)
 
-## 当前状态: Sprint 3 进行中 (v0.3.0)
+## 当前状态: Sprint 3 进行中 (v0.4.0)
 
+- [x] **v0.4.0 极简重构 (2026-08-17)**: 删除喂食/休息/任务/心情三状态; 离线探险升级为旅行青蛙式「旅行」(自动出门/空房等待/归来带纪念品+旅行日记); 主页 = 宠物形象 + 对话入口。详见 [ADR-001](docs/decisions/ADR-001-simplification-v1.1.md)
 - [x] Sprint 0 技术验证: 脚手架 / 性格对话 POC / 成本实测 / LLM 网关 v1
 - [x] Sprint 1 宠物生命周期: 注册送蛋 / 照料孵化 / 种子化生成 / SSE 对话
-- [x] Sprint 2 互动与探险: 任务 / 情绪状态机 / 事实记忆 / 离线探险 / 内容安全
+- [x] Sprint 2 互动与探险: 任务 / 情绪状态机 / 事实记忆 / 离线探险 / 内容安全 (任务/情绪状态机已于 v0.4.0 移除)
 - [x] Sprint 3 诞生体验: 问答引导(6 题) + 精灵表生图管线 (真实产物已过质检)
 - [x] Sprint 3 生图降级: 生图套餐不可用时 PETGEN_MODE=reuse 复用素材库形象 (2026-08-15)
 - [x] Sprint 3 回归通知: 回端检测 + 首页回归卡片

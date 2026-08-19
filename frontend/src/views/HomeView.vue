@@ -431,7 +431,7 @@ onMounted(async () => {
             {{ egg.care_remaining > 0 ? `照料蛋宝宝（今日剩余 ${egg.care_remaining} 次）` : '今天的照料用完啦' }}
           </button>
         </template>
-        <p v-else class="hint center">暂时没有正在孵化的蛋，未来完成任务可获得新蛋</p>
+        <p v-else class="hint center">暂时没有正在孵化的蛋</p>
       </template>
 
       <!-- 可以孵化了 -->
@@ -803,45 +803,6 @@ onMounted(async () => {
   font-size: 13px;
   letter-spacing: 1px;
   white-space: nowrap;
-}
-
-/* 状态条 */
-.state-bars {
-  margin-top: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.state-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.state-label {
-  width: 34px;
-  font-size: 12px;
-  letter-spacing: 1px;
-  color: rgba(255, 240, 220, 0.65);
-}
-.state-track {
-  flex: 1;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  overflow: hidden;
-}
-.state-fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.5s ease;
-  opacity: 0.9;
-}
-.state-value {
-  width: 26px;
-  text-align: right;
-  font-size: 12px;
-  color: rgba(255, 240, 220, 0.65);
-  font-variant-numeric: tabular-nums;
 }
 
 /* 操作按钮组 */

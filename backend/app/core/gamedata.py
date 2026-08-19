@@ -1,7 +1,7 @@
-"""游戏数值配置: 物种/天赋/技能/性格标签/名字池/任务/冒险事件库/状态衰减/内容安全
+"""游戏数值配置: 物种/天赋/技能/性格标签/名字池/旅行事件库/内容安全
 
 单人开发决策: 配置放代码模块(可版本化/可单测), 不做管理后台。
-任务在启动时播种到 DB(tasks 表)实现"DB 可配置"; 冒险事件库改这里+跑测试验证。
+旅行事件库改这里+跑测试验证。
 """
 
 # ---- 物种池 (按稀有度分层) ----
@@ -34,8 +34,8 @@ COLORS = ["赤橙", "雪白", "青灰", "暖棕", "黛蓝", "杏黄"]
 TALENT_POOL: dict[str, list[dict]] = {
     "common": [
         {"id": "early_bird", "name": "早起的鸟儿", "desc": "清晨探险收获+10%"},
-        {"id": "good_appetite", "name": "好胃口", "desc": "进食恢复心情+20%"},
-        {"id": "nap_master", "name": "打盹高手", "desc": "休息时精力恢复+15%"},
+        {"id": "good_appetite", "name": "好胃口", "desc": "旅途中更爱觅食, 常带回食物纪念品"},
+        {"id": "nap_master", "name": "打盹高手", "desc": "旅途中打盹也能攒灵感(休息经验更多)"},
         {"id": "curious", "name": "好奇心", "desc": "探索新区域概率+10%"},
     ],
     "rare": [
@@ -75,19 +75,9 @@ REGISTRATION_EGG_RARITY = "normal"  # 注册赠送蛋的稀有度(可配置)
 
 # ================= Sprint 2 =================
 
-# ---- 状态衰减 (T2.2 惰性衰减: 读取时按 elapsed 计算, 不需要调度器) ----
-DECAY_PER_HOUR = {"satiety": 4.0, "energy": 3.0}  # 每小时衰减
-MOOD_DRIFT_PER_HOUR = 2.0   # 心情每小时向 50 基准回归
-STATE_FLOOR = 5             # 状态下限(不会跌死)
-FEED_SATIETY = 30           # 喂食恢复
-FEED_MOOD = 5
-FEED_DAILY_LIMIT = 3
-REST_ENERGY = 40            # 休息恢复
-REST_DAILY_LIMIT = 2
 EXP_PER_LEVEL = 100         # 升级所需 exp = level * 100
 
-# ---- 冒险配置 ----
-MIN_OFFLINE_MINUTES = 30    # 离线超过该时长才触发冒险模拟
+# ---- 旅行配置 (P4 旅行青蛙化; 出门阈值/时长见 services/adventure.py) ----
 MAX_SIMULATE_HOURS = 8      # 单次模拟时长上限
 ADVENTURE_TICK_MINUTES = 45 # 每个行为 tick 的时长
 ADVENTURE_MAX_TICKS = 10    # 单次模拟行为数上限

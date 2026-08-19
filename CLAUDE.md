@@ -6,7 +6,7 @@
 ## 项目速览
 
 - 单机版 AI 宠物应用：Vue3 + Vite 前端（`frontend/`），FastAPI + SQLAlchemy 后端（`backend/`），PostgreSQL/Redis 本机运行
-- 文档入口：`README.md`；需求唯一依据 `docs/spec/mvp-spec-v1.0.md`；最高准绳 `docs/vision/product-vision-v1.0.md`
+- 文档入口：`README.md`；需求唯一依据 `docs/spec/mvp-spec.md`；最高准绳 `docs/vision/product-vision-v1.0.md`；方向性决策 `docs/decisions/`(ADR)
 - 常用开发脚本（`scripts/`）：`check_state.py`（只读查库）、`fastforward_hatch.py <username>`（孵化值快进）、`regenerate_sprite.py <pet_id>`（重跑形象生成）、`cleanup_probe.py <username>`（清探针账号）、`checkpoint.ps1`（留回退点）
 - 后端启动：`cd backend && python -m uvicorn app.main:app --port 8000`（受限环境禁用 `--reload`，子进程命名管道会被拦截）
 - 前端启动：`cd frontend && npm run dev`；本机可能存在多个 dev server（5173/5174），排查前先确认用户实际在哪个端口
