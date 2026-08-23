@@ -18,7 +18,8 @@ function logout() {
       <nav>
         <template v-if="auth.token">
           <router-link to="/" class="nav-pill">家园</router-link>
-          <router-link to="/chat" class="nav-pill">对话</router-link>
+          <!-- v1.3 (ADR-003): 对话移出 MVP, 导航入口撤下; 代码保留备拓展 -->
+          <router-link to="/collection" class="nav-pill">收藏</router-link>
           <button class="nav-pill user-pill" title="退出登录" @click="logout">
             {{ auth.username }} · 退出
           </button>

@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from './views/HomeView.vue'
-import ChatView from './views/ChatView.vue'
 import LoginView from './views/LoginView.vue'
 import QuizView from './views/QuizView.vue'
 import PackView from './views/PackView.vue'
@@ -11,7 +10,8 @@ export const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomeView },
     { path: '/quiz', name: 'quiz', component: QuizView },
-    { path: '/chat', name: 'chat', component: ChatView },
+    // v1.3 (ADR-003): 对话移出 MVP, /chat 重定向回主页; ChatView 代码保留备拓展
+    { path: '/chat', redirect: '/' },
     { path: '/pack', name: 'pack', component: PackView },
     { path: '/collection', name: 'collection', component: CollectionView },
     // v1.2: 旅行日记并入收藏页, 旧链接重定向

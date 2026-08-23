@@ -537,10 +537,10 @@ function itemNameById(itemId: string): string {
           </div>
         </template>
         <template v-else>
-          <p class="hint">
+          <!-- v1.3: 聊聊入口撤下(ADR-003); 操作坞保持紧凑不挡宠物 (spec §11.1 布局红线) -->
+          <p class="hint small">
             天赋：{{ pet.talents.map((t) => t.name).join('、') }} ｜ 技能：{{ pet.skills.map((s) => s.name).join('、') }}
           </p>
-          <router-link to="/chat" class="cta">和「{{ pet.name }}」聊聊</router-link>
           <div class="action-row">
             <router-link to="/pack" class="action-btn">打包行李</router-link>
             <router-link to="/collection" class="action-btn">收藏</router-link>
@@ -599,12 +599,12 @@ function itemNameById(itemId: string): string {
   height: 100%;
 }
 
-/* 生成形象层: 覆盖在巢穴位置 (巢中心 x≈47%, 巢面 y≈64%) */
+/* 生成形象层: 覆盖在巢穴位置 (v1.3 布局红线: 上移+略缩, 完整露出不被操作坞遮挡) */
 .sprite-layer {
   position: absolute;
   left: 47%;
-  top: 46%;
-  width: 44%;
+  top: 33%;
+  width: 40%;
   aspect-ratio: 1;
   transform: translateX(-50%);
   pointer-events: none;
@@ -731,16 +731,16 @@ function itemNameById(itemId: string): string {
   color: rgba(253, 240, 220, 0.6);
 }
 
-/* ---------- 底部面板 ---------- */
+/* ---------- 底部操作坞 (v1.3: 紧凑半透明, 不遮挡宠物) ---------- */
 .panel {
   position: absolute;
   z-index: 2;
-  left: 22px;
-  right: 22px;
-  bottom: 32px;
-  padding: 18px 20px 20px;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  padding: 12px 16px 14px;
   border-radius: 20px;
-  background: rgba(22, 12, 44, 0.55);
+  background: rgba(22, 12, 44, 0.42);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -788,6 +788,13 @@ function itemNameById(itemId: string): string {
   font-size: 12px;
   color: rgba(255, 240, 220, 0.45);
   letter-spacing: 1px;
+}
+.hint.small {
+  margin-top: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .hint.center {
   text-align: center;
@@ -896,7 +903,7 @@ function itemNameById(itemId: string): string {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 10px;
 }
 .away-note {
   margin: 18px 0 6px;
@@ -931,12 +938,11 @@ function itemNameById(itemId: string): string {
   cursor: not-allowed;
 }
 
-/* ===== 归来信封 (H3) ===== */
+/* ===== 归来信封 (H3): 位于宠物旁侧, 不遮挡宠物 (spec §11.1 布局红线) ===== */
 .envelope {
   position: absolute;
-  left: 50%;
-  bottom: 34%;
-  transform: translateX(-50%);
+  right: 6%;
+  top: 34%;
   z-index: 12;
   display: flex;
   flex-direction: column;
@@ -970,37 +976,37 @@ function itemNameById(itemId: string): string {
   color: var(--color-text);
 }
 @keyframes envelope-bob {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(-8px); }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
-/* ===== 拆开的信件 (H4) ===== */
+/* ===== 拆开的信件 (H4): 底部信纸抽屉, 上方宠物保持可见 (spec §11.1 布局红线) ===== */
 .mask {
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: rgba(10, 5, 26, 0.65);
-  backdrop-filter: blur(4px);
+  background: rgba(10, 5, 26, 0.45);
+  backdrop-filter: blur(2px);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 24px;
 }
 .letter-card {
   width: 100%;
-  max-width: 380px;
-  max-height: 80vh;
+  max-width: 480px;
+  max-height: 62vh;
   overflow-y: auto;
-  padding: 24px 22px;
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(42, 24, 74, 0.96), rgba(26, 15, 56, 0.96));
+  padding: 22px 22px 26px;
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(180deg, rgba(42, 24, 74, 0.97), rgba(26, 15, 56, 0.97));
   border: 1px solid rgba(247, 201, 138, 0.25);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(247, 201, 138, 0.08);
-  animation: card-in 0.35s ease;
+  border-bottom: none;
+  box-shadow: 0 -12px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(247, 201, 138, 0.08);
+  animation: sheet-in 0.35s ease;
 }
-@keyframes card-in {
-  from { transform: translateY(20px) scale(0.96); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
+@keyframes sheet-in {
+  from { transform: translateY(60px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 .letter-title {
   margin: 0 0 12px;

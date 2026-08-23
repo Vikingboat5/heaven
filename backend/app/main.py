@@ -16,18 +16,32 @@ _STATIC_DIR.mkdir(exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时播种物品发现状态(幂等) + 迁移旧格式背包; DB 不可用时留痕跳过, 不阻塞启动
+    # 启动时: 轻量 schema 补齐(幂等, 开发期代替 alembic; 上线前接正式迁移) →
+    # 播种物品发现状态(幂等) → 迁移旧格式背包; DB 不可用时留痕跳过, 不阻塞启动
+    from sqlalchemy import text
+
     from .database import SessionLocal
     from .services import items as item_service
 
     try:
         db = SessionLocal()
+        db.execute(text("ALTER TABLE pets ADD COLUMN IF NOT EXISTS loadout JSONB DEFAULT '{}'::jsonb"))
+        # 简化版(v1.1)已从模型删除的旧列, 同步从库中移除
+        db.execute(text("ALTER TABLE pets DROP COLUMN IF EXISTS state"))
+        db.execute(text("ALTER TABLE pets DROP COLUMN IF EXISTS state_updated_at"))
+        db.execute(text(
+            "CREATE TABLE IF NOT EXISTS item_states ("
+            "item_id VARCHAR(64) PRIMARY KEY, "
+            "first_discovered_by INTEGER REFERENCES users(id), "
+            "first_discovered_at TIMESTAMP)"
+        ))
+        db.commit()
         added = item_service.seed_item_states(db)
         migrated = item_service.migrate_all_inventories(db)
         db.close()
-        print(f"[startup] item_states 播种 +{added}, 背包迁移 {migrated} 只宠物")
+        print(f"[startup] schema 补齐完成; item_states 播种 +{added}, 背包迁移 {migrated} 只宠物")
     except Exception as e:
-        print(f"[startup] item_states 播种/迁移跳过(DB 不可用?): {e}")
+        print(f"[startup] schema/播种/迁移跳过(DB 不可用?): {e}")
     yield
     await gateway.close()
 
