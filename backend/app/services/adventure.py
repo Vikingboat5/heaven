@@ -1,11 +1,12 @@
-"""冒险服务 (P4 旅行青蛙化): 宠物出门旅行 + 归来带回纪念品/照片
+"""冒险服务 (v1.2 种子锚定版): 宠物出门旅行 + 归来带回纪念品/日记
 
 状态机 (惰性, 每次回端检测推进):
-- 在家 + 离线超阈值 → 自动出门 (auto-leave), 或手动 leave_now 送出门
-- 旅行中 → 回来时若已到 back_at 则结算: 生成冒险日志(照片)+道具(纪念品)+经验
+- 在家 + 离线超阈值 → 自动出门 (auto-leave), 或手动 leave_now 送出门(可带行囊)
+- 旅行中 → 回来时若已到 back_at 则结算: 选种子→抽基调→抽卡组→结算(规则) → LLM带背景成文
 - 旅行中未到 back_at → 保持"旅行中", 主页显示空房, 对话锁定
 
-成本: 行为决策零 LLM(behavior.py), 每次归来仅 1 次 lite 润色日志, 失败降级模板。
+成本: 行为决策零 LLM(behavior.py), 每次归来仅 1 次 lite 润色, 失败降级模板不丢数据。
+红线: R2 交换不降级 / R5 日记陌生化转述(不出现真实人名地名)。
 """
 from __future__ import annotations
 
@@ -14,17 +15,23 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from ..core.behavior import simulate_offline
-from ..core.gamedata import ADVENTURE_ZONES, MAX_SIMULATE_HOURS
+from ..core import catalog
+from ..core.behavior import simulate_trip
+from ..core.gamedata import MAX_SIMULATE_HOURS
 from ..llm.gateway import gateway
 from ..models import AdventureLog, Pet, User
-from .state import add_item, gain_exp
+from . import items as item_service
+from .state import add_item, count_item, gain_exp, remove_item
 
 AUTO_LEAVE_MINUTES = 45    # 离线超过此时长, 宠物自动出门
 TRAVEL_MIN_HOURS = 2       # 旅行最短时长
 TRAVEL_MAX_HOURS = 6       # 旅行最长时长
 
-_POLISH_SYSTEM = "你是宠物冒险日志润色助手。把事件列表改写成150字以内、温馨可爱的第一人称小故事(宠物视角, 可带动作表情)。只输出故事正文。"
+_POLISH_SYSTEM = (
+    "你是宠物旅行日记润色助手。根据旅行背景、基调和事件列表, 改写成150字以内、温馨可爱的"
+    "第一人称小故事(宠物视角, 可带动作表情)。规则: 宠物不认识人类世界的名人和地名, "
+    "只能用它看到的模样来描述(陌生化转述), 绝不写出真实人名/地名/作品名。只输出故事正文。"
+)
 
 
 def _fallback_narrative(pet_name: str, events: list[dict]) -> str:
@@ -39,8 +46,7 @@ def is_away(pet: Pet) -> bool:
     back_at = (pet.travel or {}).get("back_at")
     if not back_at:
         return False
-    back_dt = _parse(back_at)
-    return back_dt > datetime.utcnow()
+    return _parse(back_at) > datetime.utcnow()
 
 
 def _parse(v: str | datetime) -> datetime:
@@ -51,37 +57,75 @@ def _parse(v: str | datetime) -> datetime:
     return dt
 
 
-def _depart(pet: Pet, now: datetime) -> None:
-    """让宠物出门: 随机目的地 + 随机时长(种子化可复现)"""
+def available_seeds(level: int) -> list[dict]:
+    seeds = [s for s in catalog.SEEDS.values() if s["min_level"] <= level]
+    return seeds or list(catalog.SEEDS.values())[:1]
+
+
+def _depart(pet: Pet, now: datetime) -> dict:
+    """让宠物出门: 随机种子(等级门控) + 随机时长(种子化可复现)"""
     rng = random.Random(f"travel:{pet.hatch_seed}:{now.isoformat()}")
-    zone = rng.choice(ADVENTURE_ZONES)
+    seed_def = rng.choice(available_seeds(pet.level))
     hours = rng.uniform(TRAVEL_MIN_HOURS, TRAVEL_MAX_HOURS)
     pet.travel = {
         "left_at": now.isoformat(),
         "back_at": (now + timedelta(hours=hours)).isoformat(),
-        "dest": zone["name"],
+        "dest": seed_def["name"],
+        "seed": seed_def["id"],
     }
+    return seed_def
 
 
-def leave_now(db: Session, pet: Pet) -> dict:
-    """手动送出门 (P4: 主页"让它出门走走")"""
+def leave_now(db: Session, pet: Pet, loadout: dict | None = None) -> dict:
+    """手动送出门 (可带行囊: {food?, gift?, charm?}, 空=空手出门合法)"""
     if is_away(pet):
         return {"ok": False, "detail": "它已经在外面旅行啦"}
-    _depart(pet, datetime.utcnow())
+    if loadout:
+        err = validate_loadout(pet, loadout)
+        if err:
+            return {"ok": False, "detail": err}
+        pet.loadout = {k: v for k, v in loadout.items() if v}
+    else:
+        pet.loadout = {}
+    seed_def = _depart(pet, datetime.utcnow())
     db.commit()
-    return {"ok": True, "back_at": _parse(pet.travel["back_at"]).isoformat(timespec="minutes"), "dest": pet.travel["dest"]}
+    return {"ok": True, "back_at": _parse(pet.travel["back_at"]).isoformat(timespec="minutes"),
+            "dest": seed_def["name"]}
 
 
-async def _polish_narrative(pet: Pet, events: list[dict]) -> str:
+def validate_loadout(pet: Pet, loadout: dict) -> str | None:
+    """行囊校验: 槽位/属性匹配 + 背包持有。合法返回 None, 否则返回错误文案"""
+    for slot, item_id in loadout.items():
+        if not item_id:
+            continue
+        if slot not in ("food", "gift", "charm"):
+            return f"未知槽位 {slot}"
+        it = catalog.ITEMS.get(item_id)
+        if it is None:
+            return "背包里没有这个物品"
+        if it["attr"] != slot:
+            return f"「{it['name']}」放不进这个槽位"
+        if count_item(pet, item_id) < 1:
+            return f"「{it['name']}」数量不足"
+    return None
+
+
+async def _polish_narrative(pet: Pet, seed_def: dict, flavor: str, events: list[dict]) -> str:
     if not events:
         return _fallback_narrative(pet.name, events)
     lines = "\n".join(f"{e['time'][11:16]} {e['text']}" for e in events[:8])
+    cast = "；".join(c["desc_words"] for c in seed_def.get("cast", [])) or "无"
+    user_prompt = (
+        f"宠物「{pet.name}」的旅行:\n"
+        f"背景: {seed_def.get('background', '')} (氛围: {seed_def.get('atmosphere', '')})\n"
+        f"出场的角色: {cast}\n"
+        f"本趟基调: {catalog.FLAVOR_LABELS.get(flavor, flavor)}\n"
+        f"事件:\n{lines}"
+    )
     try:
         result = await gateway.chat(
-            [
-                {"role": "system", "content": _POLISH_SYSTEM},
-                {"role": "user", "content": f"宠物「{pet.name}」的旅行事件:\n{lines}"},
-            ],
+            [{"role": "system", "content": _POLISH_SYSTEM},
+             {"role": "user", "content": user_prompt}],
             tier="lite",
             pet_id=str(pet.id),
             max_tokens=400,
@@ -89,37 +133,62 @@ async def _polish_narrative(pet: Pet, events: list[dict]) -> str:
         )
         narrative = result.content.strip()
         return narrative if narrative else _fallback_narrative(pet.name, events)
-    except Exception:
+    except Exception as e:
+        print(f"[adventure] 日记润色失败, 降级模板: {e}")  # 兜底留痕
         return _fallback_narrative(pet.name, events)
 
 
 async def _settle_trip(db: Session, pet: Pet, travel: dict) -> AdventureLog:
-    """旅行归来结算: 模拟整段旅行 + 生成日志(照片) + 结算纪念品/经验"""
+    """旅行归来结算: 模拟整段旅行 + 日记 + 物品/行囊/首发现结算"""
     start = _parse(travel.get("left_at"))
     end = min(_parse(travel.get("back_at")), start + timedelta(hours=MAX_SIMULATE_HOURS))
+    seed_def = catalog.SEEDS.get(travel.get("seed") or "") or available_seeds(pet.level)[0]
 
-    result = simulate_offline(
+    result = simulate_trip(
+        seed_def=seed_def,
         personality=pet.personality or {},
         talents=pet.talents or [],
         level=pet.level,
         start=start,
         end=end,
         seed=f"{pet.hatch_seed}:{pet.id}",
+        loadout=pet.loadout or {},
     )
-    narrative = await _polish_narrative(pet, result.events)
+    narrative = await _polish_narrative(pet, seed_def, result.flavor, result.events)
+
+    # ---- 物品结算: 收获入包(is_new) + 首发现回填 + 行囊消耗/交换扣减 ----
+    gained: list[dict] = []
+    for item_id in result.rewards["items"]:
+        already = count_item(pet, item_id) > 0
+        via = "exchange" if result.exchanged and item_id == result.exchanged.get("got") else "forage"
+        add_item(pet, item_id, zone=seed_def["id"], via=via, is_new=True)
+        item_service.mark_first_discovery(db, item_id, pet.owner_id)
+        gained.append({"item": item_id, "is_new": not already})
+    for item_id in result.consumed:
+        remove_item(pet, item_id)
+    if result.exchanged:
+        remove_item(pet, result.exchanged["gave"])
 
     log = AdventureLog(
         pet_id=pet.id,
         events=result.events,
         narrative=narrative,
-        rewards=result.rewards,
+        rewards={
+            "exp": int(result.rewards.get("exp", 0)),
+            "items": gained,
+            "consumed": result.consumed,
+            "exchanged": result.exchanged,
+            "gift_returned": result.gift_returned,
+            "seed": seed_def["id"],
+            "dest": seed_def["name"],
+            "flavor": result.flavor,
+        },
         started_at=start,
         ended_at=end,
     )
     db.add(log)
     gain_exp(pet, int(result.rewards.get("exp", 0)))
-    for item in result.rewards.get("items", []):
-        add_item(pet, item)
+    pet.loadout = {}
     db.flush()
     return log
 
@@ -161,19 +230,30 @@ async def check_and_simulate(db: Session, user: User) -> dict:
     last_seen = user.last_seen_at
     user.last_seen_at = now
     if last_seen is not None and (now - last_seen).total_seconds() / 60 >= AUTO_LEAVE_MINUTES:
-        _depart(pet, now)
+        seed_def = _depart(pet, now)
         db.commit()
-        return {"event": "left", "log": None, "back_at": _parse(pet.travel["back_at"]).isoformat(timespec="minutes")}
+        return {"event": "left", "log": None,
+                "back_at": _parse(pet.travel["back_at"]).isoformat(timespec="minutes"),
+                "dest": seed_def["name"]}
     db.commit()
     return {"event": None, "log": None, "back_at": None}
 
 
 def log_to_out(log: AdventureLog) -> dict:
+    rewards = log.rewards or {}
     return {
         "id": log.id,
         "events": log.events,
         "narrative": log.narrative,
-        "rewards": log.rewards,
+        "rewards": {
+            "exp": int(rewards.get("exp", 0)),
+            "items": item_service.reward_items_out(rewards.get("items", [])),
+            "consumed": rewards.get("consumed", []),
+            "exchanged": rewards.get("exchanged"),
+            "gift_returned": bool(rewards.get("gift_returned", False)),
+        },
+        "dest": rewards.get("dest", ""),
+        "flavor": rewards.get("flavor", ""),
         "started_at": log.started_at.isoformat(timespec="minutes") if log.started_at else None,
         "ended_at": log.ended_at.isoformat(timespec="minutes") if log.ended_at else None,
     }

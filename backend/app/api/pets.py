@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Pet, User
+from ..services import items as item_service
 from ..services.adventure import is_away
 from .deps import get_current_user
 
@@ -22,7 +23,8 @@ def pet_to_out(pet: Pet) -> dict:
         "skills": pet.skills,
         "level": pet.level,
         "exp": pet.exp,
-        "inventory": pet.inventory,
+        "inventory": [item_service.enrich_entry(e) for e in (pet.inventory or [])],
+        "loadout": pet.loadout or {},
         "sprite_status": pet.sprite_status,
         "sprite_style": pet.sprite_style,
         "away": is_away(pet),

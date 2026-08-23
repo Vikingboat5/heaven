@@ -58,8 +58,12 @@ class Pet(Base):
     skills: Mapped[list] = mapped_column(JSON, default=list)
     level: Mapped[int] = mapped_column(default=1)
     exp: Mapped[int] = mapped_column(default=0)
-    inventory: Mapped[list] = mapped_column(JSON, default=list)  # [{"item":"浆果","count":2}]
-    # 旅行状态 (P4): {} 在家; {"left_at":iso,"back_at":iso,"dest":"萤火森林"} 旅行中
+    # 背包 (v1.2): [{"item": item_id, "count": n, "acquired_at": iso, "acquired_zone": seed_id,
+    #               "acquired_via": "forage|exchange|gift", "is_new": bool}]
+    inventory: Mapped[list] = mapped_column(JSON, default=list)
+    # 行囊 (v1.2): {"food": item_id|null, "gift": ..., "charm": ...} 出门时锁定, 归来结算后清空
+    loadout: Mapped[dict] = mapped_column(JSON, default=dict)
+    # 旅行状态: {} 在家; {"left_at":iso,"back_at":iso,"dest":名,"seed":seed_id,"flavor":基调} 旅行中
     travel: Mapped[dict] = mapped_column(JSON, default=dict)
     hatch_seed: Mapped[str] = mapped_column(String(64), default="")
     # 生成形象 (Sprint 3): pending/ready/failed; style 为画风路由键; appearance 为外观描述词
@@ -91,6 +95,15 @@ class FactMemory(Base):
     fact: Mapped[str] = mapped_column(Text)
     category: Mapped[str] = mapped_column(String(32), default="general")
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class ItemState(Base):
+    """物品发现状态 (v1.2): 静态定义在 content/items.json, 本表只存运行时回填的首发现状态"""
+    __tablename__ = "item_states"
+
+    item_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    first_discovered_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    first_discovered_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
 
 class AdventureLog(Base):

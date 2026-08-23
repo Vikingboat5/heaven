@@ -1,0 +1,184 @@
+[
+  {
+    "id": "myth:moon_palace",
+    "pack": "myth_shanhaijing_east",
+    "name": "月宫",
+    "min_level": 1,
+    "time_gate": null,
+    "background": "月面上的宫殿：白玉台阶、终年不散的桂花香、银白色云雾缭绕。宫里有一只捣药的白兔（红眼睛、系着小围裙），还有一个高大的男人在砍一棵永远砍不倒的桂树。在这里能看到一颗蓝色的大圆球悬在天上。",
+    "cast": [
+      {"id": "npc:jade_rabbit", "desc_words": "捣药的白兔, 红眼睛, 系着小围裙", "interactions": ["receive_gift", "exchange"]},
+      {"id": "npc:wugang", "desc_words": "砍一棵永远砍不倒的桂树的高大男人", "interactions": ["meet_character", "help"]}
+    ],
+    "atmosphere": "桂花香/银白色/安静",
+    "fallback_item": "moon_laurel_leaf",
+    "loot_table": [
+      {"item": "osmanthus_cake", "weight": 28},
+      {"item": "cloud_candy", "weight": 20},
+      {"item": "moon_laurel_leaf", "weight": 22},
+      {"item": "moon_herb", "weight": 12},
+      {"item": "star_sand", "weight": 10},
+      {"item": "rabbit_floss", "weight": 5},
+      {"item": "moonstone", "weight": 2},
+      {"item": "moon_jade", "weight": 1}
+    ],
+    "event_deck": {
+      "encounter": [
+        {"text": "遇到一只捣药的白兔, 红眼睛, 系着小围裙, 药臼里飘出安神的香气", "type": "meet_character", "npc": "npc:jade_rabbit", "exp": 14},
+        {"text": "看到一个高大的男人在砍一棵桂树, 砍开的口子转眼就长好了, 他擦擦汗接着砍", "type": "meet_character", "npc": "npc:wugang", "exp": 12},
+        {"text": "捣药的白兔注意到了我, 停下手里的活, 歪着头看了我好久好久", "type": "meet_character", "npc": "npc:jade_rabbit", "exp": 12}
+      ],
+      "food": [
+        {"text": "桂花香把我引到一张石桌前, 上面有还冒热气的{item}", "type": "taste", "item": "osmanthus_cake", "exp": 8},
+        {"text": "尝了一口云朵做成的糖, 甜得眯起眼睛, 像在吃一缕雾", "type": "taste", "item": "cloud_candy", "exp": 8},
+        {"text": "捣药的白兔分给我一小碗药草茶, 暖暖的, 浑身都松快了", "type": "taste", "exp": 10}
+      ],
+      "collect": [
+        {"text": "在白玉台阶的缝隙里找到了{item}", "type": "find_item", "loot": true, "exp": 9},
+        {"text": "桂树的落叶打着旋儿飘下来, 我接住了最亮的一片", "type": "find_item", "item": "moon_laurel_leaf", "exp": 8},
+        {"text": "跟着一粒发光的浮尘走了好久, 拾到了一小把{item}", "type": "find_item", "item": "star_sand", "exp": 10}
+      ],
+      "learn": [
+        {"text": "看白兔捣药看入了迷, 偷偷学会了那个节奏: 咚, 咚咚", "type": "learn", "exp": 12},
+        {"text": "学云彩变换形状, 把自己团成了一只圆滚滚的云", "type": "learn", "exp": 10}
+      ],
+      "help": [
+        {"text": "帮砍树的男人把散落的桂枝拢成一堆, 他冲我感激地点了点头", "type": "help", "npc": "npc:wugang", "receive": true, "exp": 12},
+        {"text": "药臼太重了, 我帮白兔扶稳了一把, 它塞给我一点谢礼", "type": "help", "npc": "npc:jade_rabbit", "receive": true, "exp": 12}
+      ],
+      "thrill": [
+        {"text": "云雾突然散开, 脚下差点踩空, 幸好抱住了一根玉栏杆", "type": "danger_safe", "exp": 12},
+        {"text": "一阵银色的风把我吹得原地转了三圈, 晕乎乎的但没事", "type": "danger_safe", "exp": 10}
+      ],
+      "treasure": [
+        {"text": "在宫殿的阴影里, 发现一块把月光凝住的石头!", "type": "treasure", "loot_rare": true, "exp": 16},
+        {"text": "桂树最粗的根底下, 埋着一块凉凉的玉!", "type": "treasure", "loot_rare": true, "exp": 18}
+      ],
+      "wander": [
+        {"text": "在云雾里散步, 每走一步都漾开一圈银白色的波纹", "type": "scenery", "exp": 6},
+        {"text": "趴在栏杆上看那颗蓝色的大圆球, 看得出神", "type": "scenery", "exp": 6},
+        {"text": "桂花的香气一层一层飘过来, 闻着闻着就忘了时间", "type": "scenery", "exp": 5}
+      ],
+      "social": [
+        {"text": "一群发光的小精灵围着我转圈, 跟我玩了一会儿捉迷藏", "type": "meet_creature", "exp": 8},
+        {"text": "一只云做的小鹿蹭了蹭我, 留下一身软软的雾气", "type": "meet_creature", "exp": 8}
+      ],
+      "rest": [
+        {"text": "在桂花树影里蜷成一团, 安安静静睡了一觉", "type": "rest_nothing", "exp": 4}
+      ]
+    }
+  },
+  {
+    "id": "field:forest", "pack": "field_common", "name": "萤火森林", "min_level": 1, "time_gate": null,
+    "background": "夜晚的森林：萤火虫、巨大的蘑菇圈、古老的树木。",
+    "cast": [], "atmosphere": "萤火虫/蘑菇圈/古树",
+    "fallback_item": "berry",
+    "loot_table": [
+      {"item": "glowing_mushroom", "weight": 30}, {"item": "berry", "weight": 30},
+      {"item": "acorn", "weight": 20}, {"item": "amber_resin", "weight": 15},
+      {"item": "ancient_coin", "weight": 5}
+    ],
+    "event_deck": {
+      "collect": [
+        {"text": "在萤火虫的指引下, 找到了{item}", "type": "find_item", "items": ["glowing_mushroom", "berry"], "exp": 8},
+        {"text": "在古树根部挖到了{item}", "type": "find_item", "items": ["acorn", "amber_resin"], "exp": 8}
+      ],
+      "social": [
+        {"text": "遇到一只迷路的小刺猬, 把食物分给了它", "type": "meet_creature", "exp": 10},
+        {"text": "和一只松鼠比赛收集坚果, 输得心服口服", "type": "meet_creature", "exp": 8}
+      ],
+      "wander": [
+        {"text": "躺在蘑菇圈中间看萤火虫跳舞, 看入了迷", "type": "scenery", "exp": 5},
+        {"text": "发现一片四叶草地, 偷偷许了个愿", "type": "scenery", "exp": 6}
+      ],
+      "thrill": [{"text": "差点被荆棘丛困住, 幸好及时跳了出来", "type": "danger_safe", "exp": 12}],
+      "treasure": [{"text": "拨开落叶堆, 发现了闪闪发光的{item}!", "type": "treasure", "items": ["ancient_coin"], "exp": 15}]
+    }
+  },
+  {
+    "id": "field:valley", "pack": "field_common", "name": "潺潺溪谷", "min_level": 1, "time_gate": null,
+    "background": "清凉的溪谷：溪水、瀑布、水草和回声。",
+    "cast": [], "atmosphere": "溪水/瀑布/清凉",
+    "fallback_item": "pebble",
+    "loot_table": [
+      {"item": "pebble", "weight": 30}, {"item": "crystal_stone", "weight": 30},
+      {"item": "silver_fish_scale", "weight": 28}, {"item": "water_drop_pendant", "weight": 12}
+    ],
+    "event_deck": {
+      "collect": [
+        {"text": "在溪边捡到了{item}", "type": "find_item", "items": ["pebble", "crystal_stone"], "exp": 8},
+        {"text": "顺着水流追到了一片{item}", "type": "find_item", "items": ["silver_fish_scale"], "exp": 9}
+      ],
+      "social": [
+        {"text": "陪小蝌蚪找妈妈, 在水草间玩了好一会儿", "type": "meet_creature", "exp": 8},
+        {"text": "一只蜻蜓停在鼻尖上, 一动不动地对视了三秒", "type": "meet_creature", "exp": 6}
+      ],
+      "wander": [
+        {"text": "把爪子伸进清凉的溪水里, 舒服得眯起眼睛", "type": "scenery", "exp": 5},
+        {"text": "对着溪谷的回声喊了一嗓子, 把自己吓了一跳", "type": "scenery", "exp": 5}
+      ],
+      "thrill": [{"text": "踩到湿滑的青苔差点摔进溪里, 虚惊一场", "type": "danger_safe", "exp": 10}],
+      "treasure": [{"text": "在瀑布后面的石缝里发现了{item}!", "type": "treasure", "items": ["water_drop_pendant"], "exp": 15}]
+    }
+  },
+  {
+    "id": "field:hillside", "pack": "field_common", "name": "风语山坡", "min_level": 2, "time_gate": null,
+    "background": "开阔的山坡：大风、草坡、山顶的云。",
+    "cast": [], "atmosphere": "大风/草坡/开阔",
+    "fallback_item": "alpine_flower",
+    "loot_table": [
+      {"item": "alpine_flower", "weight": 30}, {"item": "dried_herb", "weight": 30},
+      {"item": "eagle_feather", "weight": 20}, {"item": "fossil_shard", "weight": 20}
+    ],
+    "event_deck": {
+      "collect": [
+        {"text": "顶着大风采到了{item}", "type": "find_item", "items": ["alpine_flower", "dried_herb"], "exp": 9},
+        {"text": "在风口捡到了一根特别漂亮的{item}", "type": "find_item", "items": ["eagle_feather"], "exp": 10}
+      ],
+      "social": [{"text": "和一只山羊对视良久, 它先移开了目光, 是我赢了", "type": "meet_creature", "exp": 10}],
+      "wander": [
+        {"text": "从草坡上骨碌碌滚下来, 草屑沾了满身, 但是好开心", "type": "scenery", "exp": 8},
+        {"text": "躺在山顶看云朵变成各种动物的形状", "type": "scenery", "exp": 6}
+      ],
+      "thrill": [{"text": "突然下起太阳雨, 躲在大石头下面等雨停", "type": "danger_safe", "exp": 8}],
+      "treasure": [{"text": "在石堆里翻到了{item}!", "type": "treasure", "items": ["fossil_shard"], "exp": 14}]
+    }
+  },
+  {
+    "id": "field:village", "pack": "field_common", "name": "蘑菇村", "min_level": 3, "time_gate": null,
+    "background": "蘑菇小精灵的村庄：集市、露水茶、旧货摊。",
+    "cast": [], "atmosphere": "集市/小精灵/热闹",
+    "fallback_item": "glass_marble",
+    "loot_table": [
+      {"item": "glass_marble", "weight": 30}, {"item": "old_button", "weight": 30},
+      {"item": "sweet_persimmon_cake", "weight": 25}, {"item": "mini_treasure_map", "weight": 15}
+    ],
+    "event_deck": {
+      "collect": [
+        {"text": "在集市角落淘到了{item}", "type": "find_item", "items": ["glass_marble", "old_button"], "exp": 10}
+      ],
+      "help": [{"text": "帮老奶奶精灵捡柿子, 收到了{item}作为谢礼", "type": "help", "items": ["sweet_persimmon_cake"], "exp": 11}],
+      "social": [{"text": "蘑菇村的小精灵请我喝了露水茶", "type": "meet_creature", "exp": 12}],
+      "wander": [{"text": "看小精灵们排队跳房子, 忍不住加入了进去", "type": "scenery", "exp": 8}],
+      "thrill": [{"text": "差点把毒蘑菇当礼物买下来, 幸好店主拦住了我", "type": "danger_safe", "exp": 12}],
+      "treasure": [{"text": "在旧货摊底下发现了{item}!", "type": "treasure", "items": ["mini_treasure_map"], "exp": 16}]
+    }
+  },
+  {
+    "id": "field:lake", "pack": "field_common", "name": "月光湖", "min_level": 5, "time_gate": null,
+    "background": "夜晚的湖：月光洒在湖面像碎银, 湖里有银色大鱼。",
+    "cast": [], "atmosphere": "月光/湖面/碎银",
+    "fallback_item": "moonlight_shell",
+    "loot_table": [
+      {"item": "moonlight_shell", "weight": 45}, {"item": "pearl_mother", "weight": 45},
+      {"item": "mermaid_shell", "weight": 10}
+    ],
+    "event_deck": {
+      "collect": [{"text": "在湖边拾到了{item}", "type": "find_item", "items": ["moonlight_shell", "pearl_mother"], "exp": 12}],
+      "social": [{"text": "湖里的银色大鱼跃出水面, 和我打了个招呼", "type": "meet_creature", "exp": 14}],
+      "wander": [{"text": "月光洒在湖面上像撒了一层碎银, 看呆了", "type": "scenery", "exp": 10}],
+      "thrill": [{"text": "湖面突然起雾, 沿着岸边的灯草才找到回家的路", "type": "danger_safe", "exp": 14}],
+      "treasure": [{"text": "湖水退潮后, 在滩涂上挖到了{item}!", "type": "treasure", "items": ["mermaid_shell"], "exp": 20}]
+    }
+  }
+]
