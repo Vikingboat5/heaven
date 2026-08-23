@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { api, ApiError, type AdventureLogOut, type EggOut, type PetOut } from '../api/client'
+import {
+  api,
+  ApiError,
+  itemImageUrl,
+  RARITY_LABELS,
+  type AdventureLogOut,
+  type EggOut,
+  type LoadoutOut,
+  type PetOut,
+} from '../api/client'
 import PetSprite from '../components/PetSprite.vue'
 
 const router = useRouter()
@@ -14,7 +23,11 @@ const pet = ref<PetOut | null>(null)
 const hatchName = ref('')
 const busy = ref(false)
 const toast = ref('')
-const returnLog = ref<AdventureLogOut | null>(null)
+
+// 归来信件 (spec §11.1 H3-H5): returned 时只出现信封, 点击才拆开
+const letter = ref<AdventureLogOut | null>(null)
+const letterOpen = ref(false)
+const awayLoadout = ref<LoadoutOut | null>(null)
 
 // 孵化进度驱动蛋的摇晃动画 (保留原交互: >30 开始摇晃)
 const hatchProgress = computed(() => egg.value?.hatch_value ?? 0)
@@ -73,12 +86,13 @@ async function load() {
   }
 }
 
-/** 回端检测: 推进旅行状态机 (归来→回归卡片 / 出门→提示 / 旅行中→空房) */
+/** 回端检测: 推进旅行状态机 (归来→信封 / 出门→提示 / 旅行中→空房) */
 async function checkReturn() {
   try {
     const r = await api.checkAdventure()
     if (r.event === 'returned' && r.log) {
-      returnLog.value = r.log
+      letter.value = r.log // H3: 只出现信封, 不自动弹窗
+      letterOpen.value = false
     } else if (r.event === 'left') {
       showToast(`${pet.value?.name ?? '它'}出门旅行啦`)
     }
@@ -90,21 +104,23 @@ async function checkReturn() {
   }
 }
 
-/** 手动送出门 (P4: 旅行青蛙式) */
-async function sendAway() {
-  if (busy.value) return
-  busy.value = true
+/** H4: 拆开信封 */
+function openLetter() {
+  letterOpen.value = true
+}
+
+/** H5: 关闭信件 → 信封消失, 收获已入包/图鉴 */
+function closeLetter() {
+  letter.value = null
+  letterOpen.value = false
+}
+
+/** 旅行中的行囊只读展示 (H2 补充) */
+async function loadAwayLoadout() {
   try {
-    const r = await api.leaveAdventure()
-    if (r.ok) {
-      showToast(`${pet.value?.name ?? '它'}背起小包袱出发啦`)
-      const p = await api.getMyPet()
-      if (p) pet.value = p
-    }
-  } catch (err) {
-    showToast(err instanceof ApiError ? err.message : '出门失败')
-  } finally {
-    busy.value = false
+    awayLoadout.value = await api.getLoadout()
+  } catch {
+    awayLoadout.value = null
   }
 }
 
@@ -140,8 +156,38 @@ async function hatch() {
 onMounted(async () => {
   await load()
   if (phase.value === 'pet') await checkReturn()
+  if (pet.value?.away) await loadAwayLoadout()
   if (spritePending.value) pollSprite()
 })
+
+/** H2: 预计回来时间 (旅行中展示) */
+const backAtText = computed(() => {
+  const raw = pet.value?.travel?.back_at
+  if (!raw) return ''
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+})
+
+/** 行囊槽位的中文名+物品名 (旅行中只读展示用) */
+const LOADOUT_SLOTS = [
+  { key: 'food' as const, label: '口粮' },
+  { key: 'gift' as const, label: '伴手礼' },
+  { key: 'charm' as const, label: '护身符' },
+]
+function loadoutItemName(itemId: string | null | undefined): string {
+  if (!itemId) return ''
+  const entry = (pet.value?.inventory ?? []).find((e) => e.item_id === itemId)
+  return entry?.name ?? ''
+}
+
+/** 按 item_id 取名称: 信件收获 → 背包 → 原样 id (消耗品可能已不在背包) */
+function itemNameById(itemId: string): string {
+  const fromLetter = (letter.value?.rewards?.items ?? []).find((i) => i.item_id === itemId)
+  if (fromLetter) return fromLetter.name
+  const fromBag = (pet.value?.inventory ?? []).find((e) => e.item_id === itemId)
+  return fromBag?.name ?? itemId
+}
 </script>
 
 <template>
@@ -405,6 +451,18 @@ onMounted(async () => {
       <PetSprite :pet-id="pet.id" action="idle" />
     </div>
 
+    <!-- H3: 归来信封 —— 不自动弹窗, 点击才拆开 -->
+    <button
+      v-if="letter && !letterOpen"
+      class="envelope"
+      aria-label="拆开旅行信件"
+      @click="openLetter"
+    >
+      <span class="envelope-icon">✉️</span>
+      <span class="envelope-dot"></span>
+      <span class="envelope-label">{{ pet?.name }}寄来的信</span>
+    </button>
+
     <!-- ================= UI 层 ================= -->
     <header class="hero">
       <p class="eyebrow">PET PARADISE</p>
@@ -459,12 +517,23 @@ onMounted(async () => {
         </div>
         <p v-if="spritePending" class="hint">✨ {{ pet.name }}的专属形象正在成形中…</p>
 
-        <!-- 旅行中: 空房 + 回来倒计时 -->
+        <!-- 旅行中: 空房 + 回来倒计时 + 行囊只读展示 -->
         <template v-if="pet.away">
           <div class="away-note">
             <p class="away-emoji">🏕️</p>
             <p class="away-text">「{{ pet.name }}」出门旅行啦</p>
-            <p class="away-sub">去了{{ pet.travel?.dest ?? '远方' }}，玩够了就会自己回来</p>
+            <p class="away-sub">
+              去了{{ pet.travel?.dest ?? '远方' }}<template v-if="backAtText">，预计 {{ backAtText }} 左右回来</template>
+            </p>
+            <p v-if="awayLoadout" class="away-loadout">
+              带着：
+              <template v-for="slot in LOADOUT_SLOTS" :key="slot.key">
+                <span v-if="loadoutItemName(awayLoadout[slot.key])" class="away-loadout-item">
+                  {{ slot.label }}·{{ loadoutItemName(awayLoadout[slot.key]) }}
+                </span>
+              </template>
+              <span v-if="!awayLoadout.food && !awayLoadout.gift && !awayLoadout.charm">什么也没带</span>
+            </p>
           </div>
         </template>
         <template v-else>
@@ -473,25 +542,42 @@ onMounted(async () => {
           </p>
           <router-link to="/chat" class="cta">和「{{ pet.name }}」聊聊</router-link>
           <div class="action-row">
-            <button class="action-btn" :disabled="busy" @click="sendAway">让它出门走走</button>
-            <router-link to="/adventure" class="action-btn">旅行日记</router-link>
+            <router-link to="/pack" class="action-btn">打包行李</router-link>
+            <router-link to="/collection" class="action-btn">收藏</router-link>
           </div>
         </template>
       </template>
     </section>
 
-    <!-- 冒险回归卡片 -->
-    <div v-if="returnLog" class="mask" @click.self="returnLog = null">
-      <div class="return-card">
-        <p class="return-title">{{ pet?.name }}回来了！</p>
-        <p class="return-text">{{ returnLog.narrative }}</p>
-        <div v-if="returnLog.rewards" class="return-rewards">
-          <span v-if="returnLog.rewards.exp" class="reward-chip">经验 +{{ returnLog.rewards.exp }}</span>
-          <span v-for="item in returnLog.rewards.items ?? []" :key="item" class="reward-chip">
-            获得「{{ item }}」
-          </span>
+    <!-- H4/H5: 拆开的信件 —— 日记 + 收获(品级光效/NEW!) + 行囊结算留痕 -->
+    <div v-if="letter && letterOpen" class="mask" @click.self="closeLetter">
+      <div class="letter-card">
+        <p class="letter-title">✉️ {{ pet?.name }}的信 · {{ letter.dest || '远方' }}</p>
+        <p class="letter-text">{{ letter.narrative }}</p>
+        <div v-if="letter.rewards?.items?.length" class="letter-items">
+          <div
+            v-for="(it, idx) in letter.rewards.items"
+            :key="idx"
+            class="letter-item"
+            :class="`rarity-${it.rarity}`"
+          >
+            <img :src="itemImageUrl(it.image)" :alt="it.name" class="letter-item-img" />
+            <span class="letter-item-name">{{ it.name }}</span>
+            <span class="letter-item-rarity">{{ RARITY_LABELS[it.rarity] }}</span>
+            <span v-if="it.is_new" class="new-badge">NEW!</span>
+          </div>
         </div>
-        <button class="cta" @click="returnLog = null">太好啦</button>
+        <p v-if="letter.rewards?.exp" class="letter-exp">经验 +{{ letter.rewards.exp }}</p>
+        <div class="letter-notes">
+          <p v-if="letter.rewards?.exchanged" class="letter-note">
+            用「{{ itemNameById(letter.rewards.exchanged.gave) }}」换到了「{{ itemNameById(letter.rewards.exchanged.got) }}」
+          </p>
+          <p v-else-if="letter.rewards?.gift_returned" class="letter-note">把伴手礼又抱回来了（有点害羞）</p>
+          <p v-for="cid in letter.rewards?.consumed ?? []" :key="cid" class="letter-note">
+            路上吃掉了「{{ itemNameById(cid) }}」
+          </p>
+        </div>
+        <button class="cta" @click="closeLetter">收好啦</button>
       </div>
     </div>
 
@@ -845,7 +931,50 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
-/* 冒险回归卡片 */
+/* ===== 归来信封 (H3) ===== */
+.envelope {
+  position: absolute;
+  left: 50%;
+  bottom: 34%;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 18px;
+  background: rgba(255, 248, 230, 0.14);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  animation: envelope-bob 1.6s ease-in-out infinite;
+}
+.envelope-icon {
+  font-size: 30px;
+  filter: drop-shadow(0 0 10px rgba(255, 220, 160, 0.8));
+}
+.envelope-dot {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff7a7a;
+  box-shadow: 0 0 8px rgba(255, 122, 122, 0.9);
+}
+.envelope-label {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--color-text);
+}
+@keyframes envelope-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-8px); }
+}
+
+/* ===== 拆开的信件 (H4) ===== */
 .mask {
   position: fixed;
   inset: 0;
@@ -857,9 +986,11 @@ onMounted(async () => {
   justify-content: center;
   padding: 24px;
 }
-.return-card {
+.letter-card {
   width: 100%;
   max-width: 380px;
+  max-height: 80vh;
+  overflow-y: auto;
   padding: 24px 22px;
   border-radius: 22px;
   background: linear-gradient(180deg, rgba(42, 24, 74, 0.96), rgba(26, 15, 56, 0.96));
@@ -871,35 +1002,102 @@ onMounted(async () => {
   from { transform: translateY(20px) scale(0.96); opacity: 0; }
   to { transform: translateY(0) scale(1); opacity: 1; }
 }
-.return-title {
+.letter-title {
   margin: 0 0 12px;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 2px;
   color: var(--color-gold);
   text-align: center;
 }
-.return-text {
+.letter-text {
   margin: 0;
   font-size: 14px;
   line-height: 1.8;
   color: var(--color-text);
 }
-.return-rewards {
+.letter-items {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 14px;
 }
-.reward-chip {
-  padding: 4px 10px;
-  border-radius: 999px;
+.letter-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 72px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.letter-item.rarity-rare {
+  border-color: rgba(120, 170, 255, 0.6);
+  box-shadow: 0 0 12px rgba(120, 170, 255, 0.3);
+}
+.letter-item.rarity-epic {
+  border-color: rgba(247, 201, 100, 0.7);
+  box-shadow: 0 0 14px rgba(247, 201, 100, 0.35);
+}
+.letter-item-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+}
+.letter-item-name {
   font-size: 11px;
-  color: #f7c98a;
-  background: rgba(247, 201, 138, 0.12);
-  border: 1px solid rgba(247, 201, 138, 0.25);
+  color: var(--color-text);
+  text-align: center;
 }
-.return-card .cta {
+.letter-item-rarity {
+  font-size: 10px;
+  color: var(--color-text-faint);
+}
+.letter-item.rarity-rare .letter-item-rarity { color: #8ab4ff; }
+.letter-item.rarity-epic .letter-item-rarity { color: #f7c964; }
+.new-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #ff8a5c, #ff5c8a);
+  box-shadow: 0 2px 8px rgba(255, 92, 138, 0.5);
+}
+.letter-exp {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--color-gold);
+}
+.letter-notes {
+  margin-top: 8px;
+}
+.letter-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+.letter-card .cta {
   margin-top: 18px;
+}
+
+/* 旅行中行囊只读展示 */
+.away-loadout {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+.away-loadout-item {
+  margin: 0 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 </style>
