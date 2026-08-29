@@ -28,7 +28,12 @@ function logout() {
       </nav>
     </header>
     <main>
-      <router-view />
+      <!-- 规范 §4: 页面转场 fade + 上移 8px, 180ms -->
+      <router-view v-slot="{ Component }">
+        <transition name="page" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </main>
   </div>
 </template>
@@ -56,12 +61,27 @@ function logout() {
   z-index: 10;
 }
 .logo {
+  font-family: var(--font-display);
   font-weight: 700;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   letter-spacing: 3px;
   color: var(--color-gold);
   text-decoration: none;
   text-shadow: 0 1px 8px rgba(247, 201, 138, 0.3);
+}
+
+/* 页面转场 (规范 §4) */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 nav {
   display: flex;

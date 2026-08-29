@@ -121,17 +121,17 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
     <template v-else-if="tab === 'catalog'">
       <section v-for="g in packs" :key="g.pack" class="pack-group">
         <p class="pack-title">{{ g.label }} <span class="pack-progress">{{ packProgress(g) }}</span></p>
-        <div class="grid">
+        <div class="grid stagger">
           <button
             v-for="it in g.items"
             :key="it.item_id"
             class="cell"
-            :class="[`rarity-${it.rarity}`, { silhouette: !it.obtained }]"
+            :class="[`rarity-${it.rarity}`, { silhouette: !it.obtained, 'epic-glow': it.obtained && it.rarity === 'epic' }]"
             @click="openDetail(it)"
           >
             <img :src="itemImageUrl(it.image)" :alt="it.obtained ? it.name : '???'" class="cell-img" />
             <span class="cell-name">{{ it.obtained ? it.name : '???' }}</span>
-            <span v-if="it.obtained && it.is_new" class="new-badge">NEW!</span>
+            <span v-if="it.obtained && it.is_new" class="new-badge badge-pulse">NEW!</span>
           </button>
         </div>
       </section>
@@ -143,7 +143,7 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
         <p class="state-title">还没有旅行日记</p>
         <p class="state-text">离开一段时间再回来，小家伙就会出门探险啦</p>
       </div>
-      <div v-else class="timeline">
+      <div v-else class="timeline stagger">
         <article v-for="log in logs" :key="log.id" class="log-card" @click="expandedLog = expandedLog === log.id ? null : log.id">
           <div class="log-dot"></div>
           <p class="log-time">{{ fmtTime(log.started_at) }} · {{ log.dest || '远方' }}</p>
@@ -177,7 +177,8 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
     <!-- C3: 物品详情弹层 -->
     <div v-if="detail" class="mask" @click.self="detail = null">
       <div class="detail-card">
-        <img :src="itemImageUrl(detail.image)" :alt="detail.name" class="detail-img" :class="`rarity-${detail.rarity}`" />
+        <img :src="itemImageUrl(detail.image)" :alt="detail.name" class="detail-img"
+             :class="[`rarity-${detail.rarity}`, { 'epic-glow': detail.rarity === 'epic' }]" />
         <p class="detail-name">{{ detail.name }}</p>
         <p class="detail-meta">
           <span :class="`rarity-text-${detail.rarity}`">{{ RARITY_LABELS[detail.rarity] }}</span>
@@ -233,7 +234,8 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
 }
 .col-head h2 {
   margin: 0;
-  font-size: 22px;
+  font-family: var(--font-display);
+  font-size: var(--fs-xxl);
   font-weight: 600;
   letter-spacing: 6px;
   color: var(--color-text);

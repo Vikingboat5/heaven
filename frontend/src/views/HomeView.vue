@@ -554,17 +554,17 @@ function itemNameById(itemId: string): string {
       <div class="letter-card">
         <p class="letter-title">✉️ {{ pet?.name }}的信 · {{ letter.dest || '远方' }}</p>
         <p class="letter-text">{{ letter.narrative }}</p>
-        <div v-if="letter.rewards?.items?.length" class="letter-items">
+        <div v-if="letter.rewards?.items?.length" class="letter-items stagger">
           <div
             v-for="(it, idx) in letter.rewards.items"
             :key="idx"
             class="letter-item"
-            :class="`rarity-${it.rarity}`"
+            :class="[`rarity-${it.rarity}`, { 'epic-glow': it.rarity === 'epic' }]"
           >
             <img :src="itemImageUrl(it.image)" :alt="it.name" class="letter-item-img" />
             <span class="letter-item-name">{{ it.name }}</span>
             <span class="letter-item-rarity">{{ RARITY_LABELS[it.rarity] }}</span>
-            <span v-if="it.is_new" class="new-badge">NEW!</span>
+            <span v-if="it.is_new" class="new-badge badge-pulse">NEW!</span>
           </div>
         </div>
         <p v-if="letter.rewards?.exp" class="letter-exp">经验 +{{ letter.rewards.exp }}</p>
@@ -702,33 +702,35 @@ function itemNameById(itemId: string): string {
 }
 
 /* ---------- 标题 ---------- */
+/* hero 瘦身 (规范 §0: 空间让给宠物); 标题用得意黑 */
 .hero {
   position: relative;
   z-index: 2;
   text-align: center;
-  margin-top: 58px;
+  margin-top: 34px;
   pointer-events: none;
 }
 .eyebrow {
-  margin: 0 0 10px;
-  font-size: 11px;
+  margin: 0 0 6px;
+  font-size: var(--fs-xs);
   letter-spacing: 5px;
   color: rgba(255, 233, 200, 0.55);
 }
 .title {
   margin: 0;
-  font-size: 36px;
+  font-family: var(--font-display);
+  font-size: 28px;
   font-weight: 600;
-  letter-spacing: 10px;
-  text-indent: 10px; /* 视觉居中补偿字间距 */
-  color: #fdf6ec;
+  letter-spacing: 8px;
+  text-indent: 8px; /* 视觉居中补偿字间距 */
+  color: var(--color-text);
   text-shadow: 0 2px 24px rgba(255, 200, 140, 0.35), 0 1px 2px rgba(40, 16, 60, 0.6);
 }
 .subtitle {
-  margin: 12px 0 0;
-  font-size: 13px;
+  margin: 8px 0 0;
+  font-size: var(--fs-xs);
   letter-spacing: 1px;
-  color: rgba(253, 240, 220, 0.6);
+  color: var(--color-text-faint);
 }
 
 /* ---------- 底部操作坞 (v1.3: 紧凑半透明, 不遮挡宠物) ---------- */
@@ -857,10 +859,11 @@ function itemNameById(itemId: string): string {
 
 /* 宠物卡片 */
 .pet-name {
-  font-size: 22px;
+  font-family: var(--font-display);
+  font-size: var(--fs-xxl);
   font-weight: 700;
   letter-spacing: 2px;
-  color: #fdf6ec;
+  color: var(--color-text);
 }
 .pet-species {
   font-size: 12px;
@@ -905,16 +908,17 @@ function itemNameById(itemId: string): string {
   gap: 8px;
   margin-top: 10px;
 }
+/* 旅行中提示 (规范 §3: 操作坞占屏 ≤15%, away-note 必须紧凑) */
 .away-note {
-  margin: 18px 0 6px;
-  padding: 18px;
-  border-radius: 16px;
+  margin: 8px 0 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.06);
   text-align: center;
 }
-.away-emoji { font-size: 34px; margin: 0; }
-.away-text { margin: 8px 0 4px; font-size: 15px; color: var(--color-text); }
-.away-sub { margin: 0; font-size: 12px; color: var(--color-text-faint); }
+.away-emoji { font-size: 22px; margin: 0; }
+.away-text { margin: 2px 0 2px; font-size: var(--fs-lg); color: var(--color-text); }
+.away-sub { margin: 0; font-size: var(--fs-xs); color: var(--color-text-faint); }
 .action-btn {
   padding: 9px 0;
   border-radius: 12px;
@@ -1095,8 +1099,8 @@ function itemNameById(itemId: string): string {
 
 /* 旅行中行囊只读展示 */
 .away-loadout {
-  margin: 8px 0 0;
-  font-size: 12px;
+  margin: 4px 0 0;
+  font-size: var(--fs-xs);
   color: var(--color-text-faint);
 }
 .away-loadout-item {

@@ -155,12 +155,12 @@ async function leave() {
         <!-- B1: 背包网格 -->
         <p class="grid-title">背包</p>
         <div v-if="bagItems.length === 0" class="state-text">背包空空如也，先让它空着爪子出门也可以</div>
-        <div v-else class="grid">
+        <div v-else class="grid stagger">
           <button
             v-for="item in bagItems"
             :key="item.item_id"
             class="cell"
-            :class="[`rarity-${item.rarity}`, { inSlot: Object.values(loadout).includes(item.item_id) }]"
+            :class="[`rarity-${item.rarity}`, { inSlot: Object.values(loadout).includes(item.item_id), 'epic-glow': item.rarity === 'epic' }]"
             @click="pick(item)"
           >
             <img :src="itemImageUrl(item.image)" :alt="item.name" class="cell-img" />
@@ -217,7 +217,8 @@ async function leave() {
 }
 .pack-head h2 {
   margin: 0;
-  font-size: 22px;
+  font-family: var(--font-display);
+  font-size: var(--fs-xxl);
   font-weight: 600;
   letter-spacing: 6px;
   color: var(--color-text);

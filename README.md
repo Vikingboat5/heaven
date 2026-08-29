@@ -65,7 +65,8 @@ npm run dev
 
 - [产品终态蓝图 v1.0](docs/vision/product-vision-v1.0.md) — 项目最高准绳
 - [MVP 需求规格](docs/spec/mvp-spec.md) — V1.0 开发的唯一需求依据（当前 v1.1，版本演进见文末变更记录，历史用 `git tag spec-vX.Y` 锚定）
-- [种子与物品体系 Spec](docs/spec/seed-item-system-spec.md) — v1.2 草案：旅行内容化/物品/图鉴/行囊（含页面操作验收表）
+- [种子与物品体系 Spec](docs/spec/seed-item-system-spec.md) — v1.2：旅行内容化/物品/图鉴/行囊（含页面操作验收表）
+- [UI 与动效规范](docs/spec/ui-motion-guidelines.md) — v1.0：设计 tokens/字体/动效模式/验收 checklist（所有前端页面的实现与验收依据）
 - [决策记录 ADR](docs/decisions/) — 方向性决策的"为什么"（如 ADR-001 极简重构）
 - [PRD](docs/prd/pet-paradise-prd-v0.1.md)
 - [技术选型](docs/architecture/tech-selection-v0.1.md)
