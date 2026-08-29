@@ -200,14 +200,55 @@ function itemNameById(itemId: string): string {
       aria-hidden="true"
     >
       <defs>
-        <!-- 黄昏天空 -->
+        <!-- 黄昏天空 (8 档消色带, 规范方向四) -->
         <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#150c2e" />
-          <stop offset="30%" stop-color="#3d2358" />
-          <stop offset="55%" stop-color="#7a4478" />
-          <stop offset="76%" stop-color="#c96f6e" />
-          <stop offset="100%" stop-color="#eeb27f" />
+          <stop offset="0%" stop-color="#0d0722" />
+          <stop offset="18%" stop-color="#1a0f38" />
+          <stop offset="36%" stop-color="#3d2358" />
+          <stop offset="52%" stop-color="#5c3270" />
+          <stop offset="66%" stop-color="#8a4f7e" />
+          <stop offset="80%" stop-color="#c96f6e" />
+          <stop offset="92%" stop-color="#e89a6e" />
+          <stop offset="100%" stop-color="#f3c489" />
         </linearGradient>
+        <!-- 地平线暖雾光带 -->
+        <linearGradient id="horizon-mist" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffcf9a" stop-opacity="0" />
+          <stop offset="50%" stop-color="#ffcf9a" stop-opacity="0.28" />
+          <stop offset="100%" stop-color="#ffcf9a" stop-opacity="0" />
+        </linearGradient>
+        <!-- 山间冷雾带 -->
+        <linearGradient id="mountain-fog" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#cbb4e0" stop-opacity="0" />
+          <stop offset="50%" stop-color="#cbb4e0" stop-opacity="0.14" />
+          <stop offset="100%" stop-color="#cbb4e0" stop-opacity="0" />
+        </linearGradient>
+        <!-- 月牙与银辉 -->
+        <radialGradient id="moon-halo" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#dfe6ff" stop-opacity="0.55" />
+          <stop offset="55%" stop-color="#b9c6f2" stop-opacity="0.16" />
+          <stop offset="100%" stop-color="#b9c6f2" stop-opacity="0" />
+        </radialGradient>
+        <mask id="crescent-mask">
+          <rect width="480" height="900" fill="white" />
+          <circle cx="414" cy="106" r="15" fill="black" />
+        </mask>
+        <!-- 流星尾迹 -->
+        <linearGradient id="meteor-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+        </linearGradient>
+        <!-- 水洼映空 -->
+        <linearGradient id="pond-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8a5f9e" />
+          <stop offset="100%" stop-color="#2b1743" />
+        </linearGradient>
+        <!-- 暗角 (聚焦巢区) -->
+        <radialGradient id="vignette" cx="50%" cy="58%" r="72%">
+          <stop offset="0%" stop-color="#0a041a" stop-opacity="0" />
+          <stop offset="62%" stop-color="#0a041a" stop-opacity="0" />
+          <stop offset="100%" stop-color="#0a041a" stop-opacity="0.5" />
+        </radialGradient>
         <!-- 夕阳光晕 -->
         <radialGradient id="sun-halo" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stop-color="#ffe7bd" stop-opacity="0.85" />
@@ -230,6 +271,12 @@ function itemNameById(itemId: string): string {
         </filter>
         <filter id="blur2" x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="2" />
+        </filter>
+        <filter id="blur12" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="12" />
+        </filter>
+        <filter id="blur24" x="-90%" y="-90%" width="280%" height="280%">
+          <feGaussianBlur stdDeviation="24" />
         </filter>
         <!-- 纸感噪点 -->
         <filter id="noise" x="0" y="0" width="100%" height="100%">
@@ -267,6 +314,62 @@ function itemNameById(itemId: string): string {
           class="tw d1"
           d="M108,196 L109.2,200.3 L113.5,201.5 L109.2,202.7 L108,207 L106.8,202.7 L102.5,201.5 L106.8,200.3 Z"
         />
+        <path
+          class="tw d3"
+          d="M240,52 L241.2,56.3 L245.5,57.5 L241.2,58.7 L240,63 L238.8,58.7 L234.5,57.5 L238.8,56.3 Z"
+        />
+        <path
+          class="tw"
+          d="M430,236 L430.9,239.7 L434,240.6 L430.9,241.5 L430,245 L429.1,241.5 L426,240.6 L429.1,239.7 Z"
+        />
+        <path
+          class="tw d2"
+          d="M60,140 L60.9,143.7 L64,144.6 L60.9,145.5 L60,149 L59.1,145.5 L56,144.6 L59.1,143.7 Z"
+        />
+      </g>
+      <!-- 补星: 色温分层 (白/暖黄/淡蓝) -->
+      <g>
+        <circle class="tw d1" cx="150" cy="40" r="0.9" fill="#cfe0ff" />
+        <circle class="tw d3" cx="260" cy="150" r="0.8" fill="#ffe9c8" />
+        <circle class="tw d2" cx="330" cy="45" r="1" fill="#cfe0ff" />
+        <circle class="tw" cx="390" cy="170" r="0.9" fill="#ffe9c8" />
+        <circle class="tw d1" cx="85" cy="105" r="0.8" fill="#ffffff" />
+        <circle class="tw d3" cx="180" cy="205" r="1" fill="#cfe0ff" />
+        <circle class="tw d2" cx="455" cy="120" r="0.8" fill="#ffffff" />
+        <circle class="tw" cx="15" cy="150" r="1" fill="#ffe9c8" />
+        <circle class="tw d1" cx="285" cy="240" r="0.7" fill="#ffffff" />
+        <circle class="tw d3" cx="120" cy="290" r="0.8" fill="#cfe0ff" />
+        <circle class="tw d2" cx="370" cy="300" r="0.9" fill="#ffe9c8" />
+        <circle class="tw" cx="215" cy="90" r="0.7" fill="#ffffff" />
+      </g>
+
+      <!-- 银河带: 斜向碎星 + 柔光带 -->
+      <g opacity="0.55">
+        <ellipse cx="250" cy="170" rx="200" ry="34" fill="#b9c6f2" opacity="0.07"
+                 transform="rotate(-24 250 170)" filter="url(#blur24)" />
+        <g fill="#e8e4ff" opacity="0.5">
+          <circle cx="96" cy="266" r="0.7" /><circle cx="118" cy="252" r="0.9" />
+          <circle cx="140" cy="240" r="0.6" /><circle cx="158" cy="228" r="1" />
+          <circle cx="176" cy="214" r="0.7" /><circle cx="196" cy="204" r="0.9" />
+          <circle cx="214" cy="190" r="0.6" /><circle cx="232" cy="182" r="1" />
+          <circle cx="250" cy="168" r="0.7" /><circle cx="270" cy="158" r="0.9" />
+          <circle cx="288" cy="146" r="0.6" /><circle cx="306" cy="136" r="1" />
+          <circle cx="324" cy="122" r="0.7" /><circle cx="344" cy="112" r="0.8" />
+          <circle cx="362" cy="100" r="0.6" /><circle cx="382" cy="90" r="0.9" />
+          <circle cx="150" cy="252" r="0.6" /><circle cx="240" cy="176" r="0.6" />
+        </g>
+      </g>
+
+      <!-- 月牙与银辉 (与落日冷暖对望) -->
+      <circle cx="404" cy="118" r="46" fill="url(#moon-halo)" />
+      <circle cx="404" cy="118" r="17" fill="#f2f0ff" mask="url(#crescent-mask)" />
+
+      <!-- 流星 (错峰划过, 克制而惊艳) -->
+      <g class="meteor m1">
+        <line x1="360" y1="60" x2="410" y2="32" stroke="url(#meteor-grad)" stroke-width="1.6" stroke-linecap="round" />
+      </g>
+      <g class="meteor m2">
+        <line x1="150" y1="90" x2="196" y2="66" stroke="url(#meteor-grad)" stroke-width="1.3" stroke-linecap="round" />
       </g>
 
       <!-- 云（远山之前） -->
@@ -284,22 +387,50 @@ function itemNameById(itemId: string): string {
         </g>
       </g>
 
-      <!-- 落日（藏于远山之后） -->
+      <!-- 落日（藏于远山之后, 加超大柔光层） -->
+      <circle cx="130" cy="440" r="190" fill="url(#sun-halo)" filter="url(#blur24)" opacity="0.7" />
       <circle cx="130" cy="440" r="118" fill="url(#sun-halo)" />
       <circle cx="130" cy="440" r="44" fill="#ffe3b0" />
       <circle cx="130" cy="440" r="44" fill="#ffffff" opacity="0.22" filter="url(#blur2)" />
 
-      <!-- 三层远山（空气透视） -->
+      <!-- 地平线暖雾光带 -->
+      <rect x="0" y="420" width="480" height="70" fill="url(#horizon-mist)" />
+
+      <!-- 最远山脊 (淡紫, 空气透视最外层) -->
+      <path
+        d="M0,452 C70,428 160,444 250,452 C330,460 420,436 480,448 L480,900 L0,900 Z"
+        fill="#6e4a8a"
+        opacity="0.28"
+      />
+
+      <!-- 三层远山（空气透视） + 山间雾带 -->
       <path
         d="M0,468 C80,432 152,452 232,468 C320,486 402,442 480,460 L480,900 L0,900 Z"
         fill="#5e3a7d"
         opacity="0.42"
       />
+      <rect x="0" y="446" width="480" height="46" fill="url(#mountain-fog)" />
       <path
         d="M0,506 C92,470 182,498 262,510 C352,524 424,486 480,502 L480,900 L0,900 Z"
         fill="#472a63"
         opacity="0.62"
       />
+      <!-- 山谷灯火: 远处村庄的暖光 (呼应蘑菇村) -->
+      <g fill="#ffd9a0">
+        <circle class="tw d1" cx="292" cy="500" r="1.6" filter="url(#blur2)" />
+        <circle class="tw d3" cx="310" cy="505" r="1.2" filter="url(#blur2)" />
+        <circle class="tw d2" cx="326" cy="498" r="1.4" filter="url(#blur2)" />
+        <circle class="tw" cx="342" cy="506" r="1.1" filter="url(#blur2)" />
+        <circle class="tw d2" cx="360" cy="500" r="1.5" filter="url(#blur2)" />
+        <circle class="tw d3" cx="376" cy="507" r="1.1" filter="url(#blur2)" />
+      </g>
+      <rect x="0" y="490" width="480" height="42" fill="url(#mountain-fog)" />
+      <!-- 山脊剪影树丛 -->
+      <g fill="#3d2458" opacity="0.8">
+        <circle cx="60" cy="498" r="5" /><circle cx="74" cy="501" r="4" />
+        <circle cx="420" cy="492" r="5" /><circle cx="434" cy="496" r="4" />
+        <circle cx="448" cy="493" r="4.5" />
+      </g>
       <path
         d="M0,556 C110,522 220,552 310,562 C390,570 448,548 480,556 L480,900 L0,900 Z"
         fill="#35204e"
@@ -312,6 +443,18 @@ function itemNameById(itemId: string): string {
         fill="#2b1743"
       />
       <path d="M0,720 C130,694 280,712 480,700 L480,900 L0,900 Z" fill="#22113a" />
+
+      <!-- 小水洼: 映着天光与月影, 偶有涟漪 -->
+      <g>
+        <ellipse cx="92" cy="668" rx="52" ry="11" fill="url(#pond-grad)" opacity="0.9" />
+        <ellipse cx="92" cy="666" rx="34" ry="6" fill="#c9b8e8" opacity="0.18" filter="url(#blur2)" />
+        <!-- 月牙倒影 -->
+        <ellipse cx="86" cy="666" rx="7" ry="2" fill="#f2f0ff" opacity="0.4" filter="url(#blur2)" />
+        <ellipse class="ripple r1" cx="92" cy="668" rx="30" ry="6" fill="none"
+                 stroke="#d8c8f0" stroke-width="1" opacity="0" />
+        <ellipse class="ripple r2" cx="92" cy="668" rx="30" ry="6" fill="none"
+                 stroke="#d8c8f0" stroke-width="0.8" opacity="0" />
+      </g>
 
       <!-- 孤独的树 -->
       <g>
@@ -330,20 +473,33 @@ function itemNameById(itemId: string): string {
           <circle cx="436" cy="494" r="23" />
           <circle cx="396" cy="472" r="34" />
         </g>
-        <!-- 树上挂灯 -->
-        <g stroke="rgba(255,233,168,0.35)" stroke-width="1">
-          <line x1="428" y1="470" x2="428" y2="502" />
-          <line x1="356" y1="506" x2="356" y2="532" />
+        <!-- 木漏光斑: 透过树冠洒落的柔光 -->
+        <g fill="#ffe9c8" filter="url(#blur6)">
+          <circle cx="372" cy="520" r="7" opacity="0.14" />
+          <circle cx="410" cy="540" r="5" opacity="0.12" />
+          <circle cx="350" cy="556" r="4" opacity="0.1" />
+          <circle cx="428" cy="516" r="4.5" opacity="0.12" />
         </g>
-        <circle class="glow-dot" cx="428" cy="506" r="3.4" fill="#ffe9a8" filter="url(#blur2)" />
-        <circle
-          class="glow-dot gd2"
-          cx="356"
-          cy="536"
-          r="2.6"
-          fill="#ffe9a8"
-          filter="url(#blur2)"
-        />
+        <!-- 树上挂灯: 灯核+大光晕, 微风摆动 -->
+        <g class="lantern-swing">
+          <line x1="428" y1="470" x2="428" y2="502" stroke="rgba(255,233,168,0.35)" stroke-width="1" />
+          <circle cx="428" cy="506" r="10" fill="#ffdf9e" opacity="0.3" filter="url(#blur6)" />
+          <circle class="glow-dot" cx="428" cy="506" r="3.4" fill="#ffe9a8" filter="url(#blur2)" />
+        </g>
+        <g class="lantern-swing ls2">
+          <line x1="356" y1="506" x2="356" y2="532" stroke="rgba(255,233,168,0.35)" stroke-width="1" />
+          <circle cx="356" cy="536" r="8" fill="#ffdf9e" opacity="0.28" filter="url(#blur6)" />
+          <circle class="glow-dot gd2" cx="356" cy="536" r="2.6" fill="#ffe9a8" filter="url(#blur2)" />
+        </g>
+      </g>
+
+      <!-- 飘落花瓣: 从树的方向随风飘来 -->
+      <g fill="#f6c9d8">
+        <path class="petal p1" d="M420,470 q3,-2 5,1 q-1,3 -4,2 q-2,-1 -1,-3 Z" opacity="0.85" />
+        <path class="petal p2" d="M390,500 q3,-2 5,1 q-1,3 -4,2 q-2,-1 -1,-3 Z" opacity="0.75" />
+        <path class="petal p3" d="M440,530 q3,-2 5,1 q-1,3 -4,2 q-2,-1 -1,-3 Z" opacity="0.8" />
+        <path class="petal p4" d="M370,560 q2.6,-1.8 4.4,0.9 q-0.9,2.6 -3.5,1.8 q-1.8,-0.9 -0.9,-2.7 Z" opacity="0.7" />
+        <path class="petal p5" d="M410,600 q2.6,-1.8 4.4,0.9 q-0.9,2.6 -3.5,1.8 q-1.8,-0.9 -0.9,-2.7 Z" opacity="0.75" />
       </g>
 
       <!-- 地面反光（蛋的光映在草地上） -->
@@ -418,15 +574,28 @@ function itemNameById(itemId: string): string {
         <circle cx="250" cy="596" r="6" fill="#fff3dd" />
       </g>
 
-      <!-- 萤火虫 -->
-      <g fill="#ffe9a8" filter="url(#blur2)">
-        <circle class="ff f1" cx="118" cy="636" r="2.2" />
-        <circle class="ff f2" cx="168" cy="700" r="1.8" />
-        <circle class="ff f3" cx="282" cy="656" r="2.4" />
-        <circle class="ff f4" cx="322" cy="716" r="1.7" />
-        <circle class="ff f5" cx="88" cy="742" r="2" />
-        <circle class="ff f6" cx="152" cy="588" r="1.6" />
-        <circle class="ff f7" cx="296" cy="588" r="1.9" />
+      <!-- 宠物周尘埃光粒: 缓缓升起 -->
+      <g fill="#ffe9c8">
+        <circle class="mote mt1" cx="196" cy="560" r="1" opacity="0.5" />
+        <circle class="mote mt2" cx="252" cy="548" r="0.8" opacity="0.4" />
+        <circle class="mote mt3" cx="216" cy="596" r="0.9" opacity="0.45" />
+        <circle class="mote mt4" cx="268" cy="580" r="0.7" opacity="0.35" />
+      </g>
+
+      <!-- 萤火虫: 双层光晕 (柔光晕 + 实心核) -->
+      <g>
+        <g class="ff f1"><circle cx="118" cy="636" r="6" fill="#ffdf9e" opacity="0.3" filter="url(#blur6)" /><circle cx="118" cy="636" r="2.2" fill="#fff6d8" /></g>
+        <g class="ff f2"><circle cx="168" cy="700" r="5.5" fill="#ffdf9e" opacity="0.28" filter="url(#blur6)" /><circle cx="168" cy="700" r="1.8" fill="#fff6d8" /></g>
+        <g class="ff f3"><circle cx="282" cy="656" r="6.5" fill="#ffdf9e" opacity="0.3" filter="url(#blur6)" /><circle cx="282" cy="656" r="2.4" fill="#fff6d8" /></g>
+        <g class="ff f4"><circle cx="322" cy="716" r="5" fill="#ffdf9e" opacity="0.26" filter="url(#blur6)" /><circle cx="322" cy="716" r="1.7" fill="#fff6d8" /></g>
+        <g class="ff f5"><circle cx="88" cy="742" r="5.5" fill="#ffdf9e" opacity="0.28" filter="url(#blur6)" /><circle cx="88" cy="742" r="2" fill="#fff6d8" /></g>
+        <g class="ff f6"><circle cx="152" cy="588" r="5" fill="#ffdf9e" opacity="0.26" filter="url(#blur6)" /><circle cx="152" cy="588" r="1.6" fill="#fff6d8" /></g>
+        <g class="ff f7"><circle cx="296" cy="588" r="5.5" fill="#ffdf9e" opacity="0.28" filter="url(#blur6)" /><circle cx="296" cy="588" r="1.9" fill="#fff6d8" /></g>
+        <g class="ff f8"><circle cx="330" cy="560" r="5" fill="#ffdf9e" opacity="0.25" filter="url(#blur6)" /><circle cx="330" cy="560" r="1.5" fill="#fff6d8" /></g>
+        <g class="ff f9"><circle cx="60" cy="600" r="5" fill="#ffdf9e" opacity="0.26" filter="url(#blur6)" /><circle cx="60" cy="600" r="1.6" fill="#fff6d8" /></g>
+        <g class="ff f10"><circle cx="390" cy="640" r="5.5" fill="#ffdf9e" opacity="0.27" filter="url(#blur6)" /><circle cx="390" cy="640" r="1.8" fill="#fff6d8" /></g>
+        <g class="ff f11"><circle cx="200" cy="740" r="5" fill="#ffdf9e" opacity="0.25" filter="url(#blur6)" /><circle cx="200" cy="740" r="1.6" fill="#fff6d8" /></g>
+        <g class="ff f12"><circle cx="420" cy="700" r="5" fill="#ffdf9e" opacity="0.24" filter="url(#blur6)" /><circle cx="420" cy="700" r="1.5" fill="#fff6d8" /></g>
       </g>
 
       <!-- 前景草叶 -->
@@ -441,6 +610,9 @@ function itemNameById(itemId: string): string {
         <path d="M448,900 C450,874 454,858 444,836 C440,858 436,874 434,900 Z" />
         <path d="M420,900 C422,882 424,866 414,848 C410,866 408,882 406,900 Z" />
       </g>
+
+      <!-- 暗角: 视线聚焦巢区 -->
+      <rect width="480" height="900" fill="url(#vignette)" />
 
       <!-- 纸感噪点 -->
       <rect width="480" height="900" filter="url(#noise)" opacity="0.045" />
@@ -674,11 +846,87 @@ function itemNameById(itemId: string): string {
 .f5 { animation-delay: -4.4s; animation-duration: 7.6s; }
 .f6 { animation-delay: -5.2s; animation-duration: 8.4s; }
 .f7 { animation-delay: -6s; animation-duration: 6.8s; }
+.f8 { animation-delay: -2s; animation-duration: 7.2s; }
+.f9 { animation-delay: -3.8s; animation-duration: 8.8s; }
+.f10 { animation-delay: -5.6s; animation-duration: 7s; }
+.f11 { animation-delay: -1.6s; animation-duration: 9.4s; }
+.f12 { animation-delay: -4.9s; animation-duration: 8.2s; }
 @keyframes firefly {
   0%, 100% { opacity: 0.12; transform: translate(0, 0); }
   30% { opacity: 0.95; }
   55% { opacity: 0.3; transform: translate(12px, -16px); }
   80% { opacity: 0.85; transform: translate(4px, -26px); }
+}
+
+/* 流星: 12s/17s 周期, 只在短暂窗口划过 (规范 §4: 克制) */
+.meteor {
+  opacity: 0;
+  transform-box: fill-box;
+}
+.m1 { animation: meteor-fly 12s linear infinite; animation-delay: 2s; }
+.m2 { animation: meteor-fly 17s linear infinite; animation-delay: 9s; }
+@keyframes meteor-fly {
+  0% { opacity: 0; transform: translate(0, 0); }
+  2% { opacity: 0.9; }
+  8% { opacity: 0; transform: translate(-140px, 82px); }
+  100% { opacity: 0; transform: translate(-140px, 82px); }
+}
+
+/* 水洼涟漪: 扩散+淡出 */
+.ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ripple-spread 5.2s var(--ease-out) infinite;
+}
+.r2 { animation-delay: 2.6s; }
+@keyframes ripple-spread {
+  0% { opacity: 0; transform: scale(0.35); }
+  18% { opacity: 0.4; }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* 飘落花瓣: 下落 + 左右飘摆 + 自转 */
+.petal {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: petal-fall 11s linear infinite;
+}
+.p1 { animation-delay: 0s; }
+.p2 { animation-delay: -2.6s; animation-duration: 13s; }
+.p3 { animation-delay: -5.2s; animation-duration: 10s; }
+.p4 { animation-delay: -7.4s; animation-duration: 12s; }
+.p5 { animation-delay: -9.6s; animation-duration: 14s; }
+@keyframes petal-fall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  8% { opacity: 0.85; }
+  50% { transform: translate(-46px, 90px) rotate(200deg); }
+  92% { opacity: 0.7; }
+  100% { opacity: 0; transform: translate(-90px, 190px) rotate(420deg); }
+}
+
+/* 尘埃光粒: 缓升 + 呼吸 */
+.mote {
+  transform-box: fill-box;
+  animation: mote-rise 6s ease-in-out infinite;
+}
+.mt2 { animation-delay: -1.5s; animation-duration: 7s; }
+.mt3 { animation-delay: -3s; animation-duration: 5.4s; }
+.mt4 { animation-delay: -4.5s; animation-duration: 6.6s; }
+@keyframes mote-rise {
+  0%, 100% { opacity: 0.15; transform: translateY(0); }
+  50% { opacity: 0.6; transform: translateY(-14px); }
+}
+
+/* 挂灯微风摆动 (挂点为原点) */
+.lantern-swing {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: lantern-sway 4.6s ease-in-out infinite;
+}
+.ls2 { animation-delay: 2.3s; }
+@keyframes lantern-sway {
+  0%, 100% { transform: rotate(-2.4deg); }
+  50% { transform: rotate(2.4deg); }
 }
 
 .glow-dot {
