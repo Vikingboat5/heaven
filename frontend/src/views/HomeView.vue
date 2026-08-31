@@ -618,31 +618,33 @@ function itemNameById(itemId: string): string {
       <rect width="480" height="900" filter="url(#noise)" opacity="0.045" />
     </svg>
 
-    <!-- 生成形象层: 帧动画宠物 (巢穴位置) -->
-    <div v-if="phase === 'pet' && spriteReady && pet" class="sprite-layer">
+    <!-- 生成形象层: 帧动画宠物 (巢穴位置); H2: 旅行中不显示 (空房) -->
+    <div v-if="phase === 'pet' && spriteReady && pet && !pet.away" class="sprite-layer">
       <PetSprite :pet-id="pet.id" action="idle" />
     </div>
 
-    <!-- H3: 归来信封 —— 不自动弹窗, 点击才拆开 -->
+    <!-- H3: 归来便签信 —— 钉在树上的纸便签 (规范 v1.1: 功能物=场景实物), 点击才拆开 -->
     <button
       v-if="letter && !letterOpen"
-      class="envelope"
+      class="pinned-note"
       aria-label="拆开旅行信件"
       @click="openLetter"
     >
-      <span class="envelope-icon">✉️</span>
-      <span class="envelope-dot"></span>
-      <span class="envelope-label">{{ pet?.name }}寄来的信</span>
+      <span class="pin"></span>
+      <span class="pinned-note-icon">✉️</span>
+      <span class="pinned-note-label">{{ pet?.name }}的信</span>
     </button>
 
     <!-- ================= UI 层 ================= -->
-    <header class="hero">
+    <!-- 品牌标题: 宠物出现后隐去 (规范 v1.1 §3.2: 场景中心留给宠物) -->
+    <header v-if="phase !== 'pet'" class="hero">
       <p class="eyebrow">PET PARADISE</p>
       <h1 class="title">宠物乐园</h1>
       <p class="subtitle">每一颗蛋里，都住着一个等待遇见你的小灵魂</p>
     </header>
 
-    <section class="panel">
+    <!-- 蛋期/孵化期: 底部紧凑玻璃坞 (过渡阶段) -->
+    <section v-if="phase !== 'pet'" class="panel">
       <!-- 加载中 -->
       <p v-if="phase === 'loading'" class="hint center">加载中…</p>
 
@@ -677,49 +679,45 @@ function itemNameById(itemId: string): string {
           {{ busy ? '孵化中…' : '见证诞生' }}
         </button>
       </template>
+    </section>
 
-      <!-- 已有宠物 -->
-      <template v-else-if="phase === 'pet' && pet">
-        <div class="panel-row">
-          <span class="pet-name">{{ pet.name }}</span>
-          <span class="pet-species">{{ pet.color }}{{ pet.species }} · Lv.{{ pet.level }}</span>
-        </div>
+    <!-- ===== 宠物阶段: 环形贴边 UI (规范 v1.1 §3.2) ===== -->
+    <template v-else-if="pet">
+      <!-- 顶左: 宠物信息木牌 -->
+      <div class="pet-plaque">
+        <p class="pet-name">{{ pet.name }}</p>
+        <p class="pet-species">{{ pet.color }}{{ pet.species }} · Lv.{{ pet.level }}</p>
         <div class="chips">
           <span v-for="tag in pet.personality.tags" :key="tag" class="chip">{{ tag }}</span>
         </div>
-        <p v-if="spritePending" class="hint">✨ {{ pet.name }}的专属形象正在成形中…</p>
+        <p v-if="spritePending" class="plaque-hint">✨ {{ pet.name }}的专属形象正在成形中…</p>
+        <p v-if="!pet.away" class="plaque-hint">
+          天赋：{{ pet.talents.map((t) => t.name).join('、') }} ｜ 技能：{{ pet.skills.map((s) => s.name).join('、') }}
+        </p>
+      </div>
 
-        <!-- 旅行中: 空房 + 回来倒计时 + 行囊只读展示 -->
-        <template v-if="pet.away">
-          <div class="away-note">
-            <p class="away-emoji">🏕️</p>
-            <p class="away-text">「{{ pet.name }}」出门旅行啦</p>
-            <p class="away-sub">
-              去了{{ pet.travel?.dest ?? '远方' }}<template v-if="backAtText">，预计 {{ backAtText }} 左右回来</template>
-            </p>
-            <p v-if="awayLoadout" class="away-loadout">
-              带着：
-              <template v-for="slot in LOADOUT_SLOTS" :key="slot.key">
-                <span v-if="loadoutItemName(awayLoadout[slot.key])" class="away-loadout-item">
-                  {{ slot.label }}·{{ loadoutItemName(awayLoadout[slot.key]) }}
-                </span>
-              </template>
-              <span v-if="!awayLoadout.food && !awayLoadout.gift && !awayLoadout.charm">什么也没带</span>
-            </p>
-          </div>
-        </template>
-        <template v-else>
-          <!-- v1.3: 聊聊入口撤下(ADR-003); 操作坞保持紧凑不挡宠物 (spec §11.1 布局红线) -->
-          <p class="hint small">
-            天赋：{{ pet.talents.map((t) => t.name).join('、') }} ｜ 技能：{{ pet.skills.map((s) => s.name).join('、') }}
-          </p>
-          <div class="action-row">
-            <router-link to="/pack" class="action-btn">打包行李</router-link>
-            <router-link to="/collection" class="action-btn">收藏</router-link>
-          </div>
-        </template>
+      <!-- 旅行中: 底部纸张细横幅 (H2), 不占主动作位 -->
+      <div v-if="pet.away" class="away-banner">
+        <span class="away-line">
+          🏕️ 「{{ pet.name }}」去了{{ pet.travel?.dest ?? '远方' }}<template v-if="backAtText"> · 预计 {{ backAtText }} 归来</template>
+        </span>
+        <span v-if="awayLoadout" class="away-pack">
+          🎒
+          <template v-for="slot in LOADOUT_SLOTS" :key="slot.key">
+            <span v-if="loadoutItemName(awayLoadout[slot.key])" class="away-loadout-item">
+              {{ slot.label }}·{{ loadoutItemName(awayLoadout[slot.key]) }}
+            </span>
+          </template>
+          <span v-if="!awayLoadout.food && !awayLoadout.gift && !awayLoadout.charm">什么也没带</span>
+        </span>
+      </div>
+      <template v-else>
+        <!-- 左下: 主动作大木牌 (学旅行青蛙「准备」) -->
+        <router-link to="/pack" class="wood-btn wood-primary">🎒 打包行李</router-link>
       </template>
-    </section>
+      <!-- 右下: 次导航木牌 -->
+      <router-link to="/collection" class="wood-btn wood-side">收藏</router-link>
+    </template>
 
     <!-- H4/H5: 拆开的信件 —— 日记 + 收获(品级光效/NEW!) + 行囊结算留痕 -->
     <div v-if="letter && letterOpen" class="mask" @click.self="closeLetter">
@@ -731,7 +729,7 @@ function itemNameById(itemId: string): string {
             v-for="(it, idx) in letter.rewards.items"
             :key="idx"
             class="letter-item"
-            :class="[`rarity-${it.rarity}`, { 'epic-glow': it.rarity === 'epic' }]"
+            :class="`rarity-${it.rarity}`"
           >
             <img :src="itemImageUrl(it.image)" :alt="it.name" class="letter-item-img" />
             <span class="letter-item-name">{{ it.name }}</span>
@@ -749,7 +747,7 @@ function itemNameById(itemId: string): string {
             路上吃掉了「{{ itemNameById(cid) }}」
           </p>
         </div>
-        <button class="cta" @click="closeLetter">收好啦</button>
+        <button class="wood-btn letter-close" @click="closeLetter">收好啦</button>
       </div>
     </div>
 
@@ -1039,13 +1037,6 @@ function itemNameById(itemId: string): string {
   color: rgba(255, 240, 220, 0.45);
   letter-spacing: 1px;
 }
-.hint.small {
-  margin-top: 6px;
-  font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .hint.center {
   text-align: center;
   margin: 6px 0;
@@ -1105,31 +1096,34 @@ function itemNameById(itemId: string): string {
   border-color: rgba(242, 165, 110, 0.55);
 }
 
-/* 宠物卡片 */
+/* 宠物木牌上的文字 (规范 v1.1 §1: 木牌用奶白文字) */
 .pet-name {
+  margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-xxl);
   font-weight: 700;
   letter-spacing: 2px;
-  color: var(--color-text);
+  color: #ffedc9;
+  text-shadow: 0 1px 2px rgba(60, 30, 10, 0.6);
 }
 .pet-species {
-  font-size: 12px;
-  color: rgba(255, 240, 220, 0.55);
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  color: rgba(255, 237, 201, 0.8);
 }
 .chips {
   display: flex;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 .chip {
-  padding: 4px 12px;
+  padding: 3px 11px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   letter-spacing: 1px;
-  color: #f7c98a;
-  background: rgba(247, 201, 138, 0.12);
-  border: 1px solid rgba(247, 201, 138, 0.28);
+  color: #ffe3b3;
+  background: rgba(60, 35, 15, 0.35);
+  border: 1px solid rgba(255, 235, 200, 0.3);
 }
 
 /* 轻提示 */
@@ -1149,90 +1143,129 @@ function itemNameById(itemId: string): string {
   white-space: nowrap;
 }
 
-/* 操作按钮组 */
-.action-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-top: 10px;
-}
-/* 旅行中提示 (规范 §3: 操作坞占屏 ≤15%, away-note 必须紧凑) */
-.away-note {
-  margin: 8px 0 2px;
-  padding: 10px 12px;
+/* ===== 宠物阶段环形贴边 UI (规范 v1.1 §3.2) ===== */
+/* 顶左: 宠物信息木牌 */
+.pet-plaque {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  left: 14px;
+  max-width: 64%;
+  padding: 10px 16px 11px;
+  border: 2px solid var(--color-wood-edge);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  text-align: center;
+  background: var(--gradient-wood);
+  box-shadow: 0 6px 18px rgba(10, 6, 20, 0.45), inset 0 1px 0 rgba(255, 235, 200, 0.3);
+  rotate: -1.2deg;
 }
-.away-emoji { font-size: 22px; margin: 0; }
-.away-text { margin: 2px 0 2px; font-size: var(--fs-lg); color: var(--color-text); }
-.away-sub { margin: 0; font-size: var(--fs-xs); color: var(--color-text-faint); }
-.action-btn {
-  padding: 9px 0;
+.plaque-hint {
+  margin: 6px 0 0;
+  font-size: var(--fs-xs);
+  color: rgba(255, 237, 201, 0.75);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 左下/右下木牌定位 (rotate 用独立属性, 不与按压 scale 冲突) */
+.wood-primary {
+  position: absolute;
+  z-index: 2;
+  left: 16px;
+  bottom: 16px;
+  padding: 13px 26px;
+  font-size: var(--fs-xl);
+  rotate: -1.5deg;
+}
+.wood-side {
+  position: absolute;
+  z-index: 2;
+  right: 16px;
+  bottom: 16px;
+  padding: 10px 18px;
+  font-size: var(--fs-md);
+  rotate: 1.2deg;
+}
+/* 旅行中: 底部纸张细横幅 (H2, 学农场任务条) */
+.away-banner {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  max-width: 88%;
+  padding: 8px 18px;
+  border: 1px solid var(--color-paper-edge);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(253, 240, 220, 0.85);
-  font-size: 13px;
-  letter-spacing: 1px;
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.15s;
-  font-family: inherit;
+  background: linear-gradient(180deg, #f9efdb, #efdfbe);
+  box-shadow: 0 6px 18px rgba(10, 6, 20, 0.45);
+  font-size: var(--fs-sm);
+  color: var(--color-paper-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.action-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.13);
-  transform: translateY(-1px);
+.away-pack {
+  font-size: var(--fs-xs);
+  color: #7a5c3a;
 }
-.action-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.away-loadout-item {
+  margin: 0 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(122, 85, 48, 0.12);
+  border: 1px solid rgba(122, 85, 48, 0.3);
 }
 
-/* ===== 归来信封 (H3): 位于宠物旁侧, 不遮挡宠物 (spec §11.1 布局红线) ===== */
-.envelope {
+/* ===== 归来便签信 (H3, 规范 v1.1): 钉在树上的纸便签, 不遮挡宠物 ===== */
+.pinned-note {
   position: absolute;
-  right: 6%;
-  top: 34%;
+  right: 12%;
+  top: 45%;
   z-index: 12;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 18px;
-  background: rgba(255, 248, 230, 0.14);
-  backdrop-filter: blur(6px);
+  gap: 3px;
+  padding: 15px 16px 9px;
+  border: 1px solid var(--color-paper-edge);
+  border-radius: 6px;
+  background: linear-gradient(175deg, #f9efdb, #efdfbe);
+  box-shadow: 0 6px 18px rgba(10, 6, 20, 0.5), 0 0 24px rgba(255, 230, 170, 0.22);
   cursor: pointer;
-  animation: envelope-bob 1.6s ease-in-out infinite;
+  rotate: -3deg;
+  animation: note-bob 1.6s ease-in-out infinite;
 }
-.envelope-icon {
-  font-size: 30px;
-  filter: drop-shadow(0 0 10px rgba(255, 220, 160, 0.8));
-}
-.envelope-dot {
-  position: absolute;
-  top: 6px;
-  right: 10px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #ff7a7a;
-  box-shadow: 0 0 8px rgba(255, 122, 122, 0.9);
-}
-.envelope-label {
-  font-size: 11px;
-  letter-spacing: 1px;
-  color: var(--color-text);
-}
-@keyframes envelope-bob {
+@keyframes note-bob {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-7px); }
+}
+.pin {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  margin-left: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff9d7a, #d44a3c);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.pinned-note-icon {
+  font-size: 24px;
+}
+.pinned-note-label {
+  font-size: var(--fs-xs);
+  letter-spacing: 1px;
+  font-weight: 600;
+  color: var(--color-paper-text);
 }
 
-/* ===== 拆开的信件 (H4): 底部信纸抽屉, 上方宠物保持可见 (spec §11.1 布局红线) ===== */
+/* ===== 拆开的信件 (H4, 规范 v1.1): 信纸抽屉(纸张质感), 上方宠物保持可见 ===== */
 .mask {
   position: fixed;
   inset: 0;
@@ -1250,11 +1283,12 @@ function itemNameById(itemId: string): string {
   overflow-y: auto;
   padding: 22px 22px 26px;
   border-radius: 24px 24px 0 0;
-  background: linear-gradient(180deg, rgba(42, 24, 74, 0.97), rgba(26, 15, 56, 0.97));
-  border: 1px solid rgba(247, 201, 138, 0.25);
+  background: linear-gradient(180deg, #f9efdb, #f0e0c2);
+  border: 1px solid var(--color-paper-edge);
   border-bottom: none;
-  box-shadow: 0 -12px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(247, 201, 138, 0.08);
-  animation: sheet-in 0.35s ease;
+  box-shadow: 0 -12px 50px rgba(0, 0, 0, 0.5);
+  color: var(--color-paper-text);
+  animation: sheet-in var(--motion-slow) var(--ease-out);
 }
 @keyframes sheet-in {
   from { transform: translateY(60px); opacity: 0; }
@@ -1262,17 +1296,18 @@ function itemNameById(itemId: string): string {
 }
 .letter-title {
   margin: 0 0 12px;
-  font-size: 17px;
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
   font-weight: 700;
   letter-spacing: 2px;
-  color: var(--color-gold);
+  color: #7a4a1e;
   text-align: center;
 }
 .letter-text {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   line-height: 1.8;
-  color: var(--color-text);
+  color: var(--color-paper-text);
 }
 .letter-items {
   display: flex;
@@ -1289,16 +1324,17 @@ function itemNameById(itemId: string): string {
   width: 72px;
   padding: 8px 4px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(122, 85, 48, 0.07);
+  border: 1px solid rgba(122, 85, 48, 0.25);
 }
+/* 纸上品级色: 压暗一档 (规范 v1.1 §1) */
 .letter-item.rarity-rare {
-  border-color: rgba(120, 170, 255, 0.6);
-  box-shadow: 0 0 12px rgba(120, 170, 255, 0.3);
+  border-color: rgba(74, 111, 165, 0.65);
+  box-shadow: 0 0 12px rgba(74, 111, 165, 0.25);
 }
 .letter-item.rarity-epic {
-  border-color: rgba(247, 201, 100, 0.7);
-  box-shadow: 0 0 14px rgba(247, 201, 100, 0.35);
+  border-color: rgba(184, 134, 46, 0.75);
+  box-shadow: 0 0 14px rgba(184, 134, 46, 0.3);
 }
 .letter-item-img {
   width: 44px;
@@ -1306,16 +1342,16 @@ function itemNameById(itemId: string): string {
   border-radius: 8px;
 }
 .letter-item-name {
-  font-size: 11px;
-  color: var(--color-text);
+  font-size: var(--fs-xs);
+  color: var(--color-paper-text);
   text-align: center;
 }
 .letter-item-rarity {
   font-size: 10px;
-  color: var(--color-text-faint);
+  color: #8a7a5f;
 }
-.letter-item.rarity-rare .letter-item-rarity { color: #8ab4ff; }
-.letter-item.rarity-epic .letter-item-rarity { color: #f7c964; }
+.letter-item.rarity-rare .letter-item-rarity { color: #4a6fa5; }
+.letter-item.rarity-epic .letter-item-rarity { color: #b8862e; }
 .new-badge {
   position: absolute;
   top: -6px;
@@ -1330,32 +1366,22 @@ function itemNameById(itemId: string): string {
 }
 .letter-exp {
   margin: 12px 0 0;
-  font-size: 13px;
-  color: var(--color-gold);
+  font-size: var(--fs-md);
+  color: #b8862e;
+  font-variant-numeric: tabular-nums;
 }
 .letter-notes {
   margin-top: 8px;
 }
 .letter-note {
   margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--color-text-faint);
+  font-size: var(--fs-sm);
+  color: #a08a6a;
 }
-.letter-card .cta {
+.letter-close {
+  display: block;
+  width: 100%;
   margin-top: 18px;
-}
-
-/* 旅行中行囊只读展示 */
-.away-loadout {
-  margin: 4px 0 0;
-  font-size: var(--fs-xs);
-  color: var(--color-text-faint);
-}
-.away-loadout-item {
-  margin: 0 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 12px 0;
 }
 </style>

@@ -170,8 +170,8 @@ async function leave() {
           </button>
         </div>
 
-        <!-- B3/B4: 出门按钮 (空手合法) -->
-        <button class="cta" :disabled="busy" @click="leave">
+        <!-- B3/B4: 出门按钮 (空手合法); 规范 v1.1: 主动作=木牌 -->
+        <button class="wood-btn pack-leave" :disabled="busy" @click="leave">
           {{ busy ? '打包中…' : '送它出门' }}
         </button>
         <p class="state-text small">什么都不带也能出门，它自己会找乐子</p>
@@ -344,19 +344,12 @@ async function leave() {
 .cell.rarity-rare .cell-rarity { color: #8ab4ff; }
 .cell.rarity-epic .cell-rarity { color: #f7c964; }
 
-.cta {
-  position: relative;
+.pack-leave {
+  display: block;
   width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 999px;
-  font-size: 16px;
-  letter-spacing: 4px;
-  color: #3a1f10;
-  background: linear-gradient(135deg, #ffd9a0, #f2b06e);
-  cursor: pointer;
+  padding: 13px 0;
+  font-size: var(--fs-xl);
 }
-.cta:disabled { opacity: 0.5; }
 
 /* B5: 旅行中 */
 .away-box {
