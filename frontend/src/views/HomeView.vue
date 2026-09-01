@@ -683,17 +683,20 @@ function itemNameById(itemId: string): string {
 
     <!-- ===== 宠物阶段: 环形贴边 UI (规范 v1.1 §3.2) ===== -->
     <template v-else-if="pet">
-      <!-- 顶左: 宠物信息木牌 -->
+      <!-- 顶左: 宠物信息木牌 (头像 + 名字/标签, 学农场左上信息区) -->
       <div class="pet-plaque">
-        <p class="pet-name">{{ pet.name }}</p>
-        <p class="pet-species">{{ pet.color }}{{ pet.species }} · Lv.{{ pet.level }}</p>
-        <div class="chips">
-          <span v-for="tag in pet.personality.tags" :key="tag" class="chip">{{ tag }}</span>
+        <img class="plaque-avatar" :src="`/static/pets/${pet.id}/frames/idle_0.png`" :alt="pet.name" />
+        <div class="plaque-info">
+          <p class="pet-name">{{ pet.name }}</p>
+          <p class="pet-species">{{ pet.color }}{{ pet.species }} · Lv.{{ pet.level }}</p>
+          <div class="chips">
+            <span v-for="tag in pet.personality.tags" :key="tag" class="chip">{{ tag }}</span>
+          </div>
+          <p v-if="spritePending" class="plaque-hint">✨ {{ pet.name }}的专属形象正在成形中…</p>
+          <p v-if="!pet.away" class="plaque-hint">
+            天赋：{{ pet.talents.map((t) => t.name).join('、') }} ｜ 技能：{{ pet.skills.map((s) => s.name).join('、') }}
+          </p>
         </div>
-        <p v-if="spritePending" class="plaque-hint">✨ {{ pet.name }}的专属形象正在成形中…</p>
-        <p v-if="!pet.away" class="plaque-hint">
-          天赋：{{ pet.talents.map((t) => t.name).join('、') }} ｜ 技能：{{ pet.skills.map((s) => s.name).join('、') }}
-        </p>
       </div>
 
       <!-- 旅行中: 底部纸张细横幅 (H2), 不占主动作位 -->
@@ -712,11 +715,17 @@ function itemNameById(itemId: string): string {
         </span>
       </div>
       <template v-else>
-        <!-- 左下: 主动作大木牌 (学旅行青蛙「准备」) -->
-        <router-link to="/pack" class="wood-btn wood-primary">🎒 打包行李</router-link>
+        <!-- 左下: 主动作大木牌 (学旅行青蛙「准备」, 插画+文字) -->
+        <router-link to="/pack" class="wood-btn wood-primary">
+          <span class="wood-icon">🎒</span>
+          <span>打包行李</span>
+        </router-link>
       </template>
-      <!-- 右下: 次导航木牌 -->
-      <router-link to="/collection" class="wood-btn wood-side">收藏</router-link>
+      <!-- 右下: 次导航木牌 (插画+文字) -->
+      <router-link to="/collection" class="wood-btn wood-side">
+        <span class="wood-icon">🧺</span>
+        <span>收藏</span>
+      </router-link>
     </template>
 
     <!-- H4/H5: 拆开的信件 —— 日记 + 收获(品级光效/NEW!) + 行囊结算留痕 -->
@@ -1150,13 +1159,30 @@ function itemNameById(itemId: string): string {
   z-index: 2;
   top: 14px;
   left: 14px;
-  max-width: 64%;
-  padding: 10px 16px 11px;
+  max-width: 72%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 9px 9px;
   border: 2px solid var(--color-wood-edge);
   border-radius: 14px;
-  background: var(--gradient-wood);
+  background:
+    repeating-linear-gradient(90deg, rgba(60, 35, 15, 0.07) 0 2px, transparent 2px 8px),
+    var(--gradient-wood);
   box-shadow: 0 6px 18px rgba(10, 6, 20, 0.45), inset 0 1px 0 rgba(255, 235, 200, 0.3);
   rotate: -1.2deg;
+}
+.plaque-avatar {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 237, 201, 0.5);
+  background: rgba(60, 35, 15, 0.35);
+  object-fit: cover;
+}
+.plaque-info {
+  min-width: 0;
 }
 .plaque-hint {
   margin: 6px 0 0;
