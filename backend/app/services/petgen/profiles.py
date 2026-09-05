@@ -23,22 +23,22 @@ class StyleProfile:
 
 
 STYLE_PROFILES: dict[str, StyleProfile] = {
-    # 手绘童话插画风: 柔边, LANCZOS 平滑缩放 (docs/demo/sheet8 验收)
+    # 手绘童话插画风: 柔边, LANCZOS 平滑缩放 (docs/demo/sheet8 验收; v2: idle 12帧模板)
     "illustration": StyleProfile(
         key="illustration",
         prompt_style="手绘童话插画风, 暖色调, 柔和线条, 水彩质感",
-        prompt_version="illustration-v1",
+        prompt_version="illustration-v2",
         whitish_threshold=235,
         opening_iterations=2,
         feather_sigma=1.2,
         resize_nearest=False,
         max_area_outlier=2.0,
     ),
-    # 复古像素风: 硬边, NEAREST 缩放保像素颗粒 (docs/demo/pixel 验收)
+    # 复古像素风: 硬边, NEAREST 缩放保像素颗粒 (docs/demo/pixel 验收; v2: idle 12帧模板)
     "pixel": StyleProfile(
         key="pixel",
         prompt_style="复古16-bit像素画风格(pixel art), 清晰锐利的像素颗粒, 有限色板, 色块平涂无渐变",
-        prompt_version="pixel-v1",
+        prompt_version="pixel-v2",
         whitish_threshold=240,
         opening_iterations=2,
         feather_sigma=0.0,
@@ -72,19 +72,20 @@ class ActionTemplate:
 
 
 ACTION_TEMPLATES: dict[str, ActionTemplate] = {
-    # 待机: 眨眼渐变 + 头部微动 (docs/demo/sheet8 验收)
+    # 待机: 12帧完整眨眼渐变 + 耳/头微动 (2026-09 帧数实验: 12帧(4x3)一致性/QC全胜,
+    # 16帧(4x4)模型画出网格线且帧幅不一, 超出布局稳定区; 全序列顺序播放 110ms 更流畅)
     "idle": ActionTemplate(
         key="idle",
-        frame_count=8,
+        frame_count=12,
         grid_cols=4,
-        grid_rows=2,
+        grid_rows=3,
         frame_specs=(
-            "睁眼自然微笑", "眼睛半闭", "闭眼微笑", "眼睛半闭",
-            "睁眼睛头微微向左倾", "睁眼睛双耳微微竖起", "睁眼睛头微微向右倾",
-            "睁眼自然微笑与第1帧相同",
+            "睁眼自然微笑", "睁眼放松", "眼睛微眯", "眼睛半闭",
+            "闭眼微笑", "闭眼微笑保持", "眼睛半闭", "眼睛微眯",
+            "睁眼自然微笑", "双耳微微竖起", "头微微向左倾", "睁眼自然微笑与第1帧相同",
         ),
-        sequence=(0, 1, 2, 3, 0, 0, 4, 0, 5, 0, 6, 0, 7, 0),
-        frame_ms=130,
+        sequence=(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+        frame_ms=110,
     ),
     # 招手: 抬爪→举高→左右挥→放下 (docs/demo/pixel 验收)
     "wave": ActionTemplate(
