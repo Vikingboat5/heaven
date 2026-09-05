@@ -28,11 +28,14 @@ const emit = defineEmits<{ (e: 'error'): void; (e: 'ready'): void }>()
 const manifest = ref<Manifest | null>(null)
 const currentSrc = ref('')
 const failed = ref(false)
+// 缓存破坏: manifest 的 Last-Modified 作版本号, 重新生成形象后帧 URL 自动更新
+// (否则浏览器缓存会把新旧两套帧混着播, 看起来"两个形象交替闪烁")
+const version = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
 let tick = 0
 
 const frameUrl = (action: string, i: number) =>
-  `/static/pets/${props.petId}/frames/${action}_${i}.png`
+  `/static/pets/${props.petId}/frames/${action}_${i}.png${version.value ? `?v=${version.value}` : ''}`
 
 function stop() {
   if (timer) {
@@ -61,8 +64,9 @@ function play(actionName: string) {
 
 onMounted(async () => {
   try {
-    const resp = await fetch(`/static/pets/${props.petId}/manifest.json`)
+    const resp = await fetch(`/static/pets/${props.petId}/manifest.json`, { cache: 'no-cache' })
     if (!resp.ok) throw new Error(String(resp.status))
+    version.value = encodeURIComponent(resp.headers.get('last-modified') ?? String(Date.now()))
     manifest.value = await resp.json()
     // 预加载当前动作全部帧, 避免播放时闪烁
     const meta = manifest.value!.actions[props.action]
