@@ -1154,13 +1154,13 @@ function itemNameById(itemId: string): string {
   z-index: 2;
   right: 16px;
   bottom: 16px;
-  padding: 12px 24px 13px;
+  padding: 16px 26px 16px;
   font-size: var(--fs-md);
   rotate: 1.2deg;
 }
 .wood-side .wood-icon-img {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
 }
 /* 旅行中: 底部纸张细横幅 (H2, 学农场任务条) */
 .away-banner {
@@ -1206,9 +1206,10 @@ function itemNameById(itemId: string): string {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-  width: 96px;
-  padding: 30px 10px 12px;
+  justify-content: center;
+  gap: 2px;
+  width: 116px;
+  padding: 40px 10px 18px;   /* 顶部留图钉位, 文字收进纸面中部 */
   border: none;
   background: url('/static/ui/paper_note.png') center / 100% 100% no-repeat;
   filter: drop-shadow(0 6px 14px rgba(10, 6, 20, 0.5)) drop-shadow(0 0 18px rgba(255, 230, 170, 0.25));
