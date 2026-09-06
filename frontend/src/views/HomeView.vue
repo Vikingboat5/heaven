@@ -412,112 +412,64 @@ function itemNameById(itemId: string): string {
         </g>
       </g>
 
-      <!-- 落日（藏于远山之后, 加超大柔光层） -->
-      <circle cx="130" cy="440" r="190" fill="url(#sun-halo)" filter="url(#blur24)" opacity="0.7" />
-      <circle cx="130" cy="440" r="118" fill="url(#sun-halo)" />
-      <circle cx="130" cy="440" r="44" fill="#ffe3b0" />
-      <circle cx="130" cy="440" r="44" fill="#ffffff" opacity="0.22" filter="url(#blur2)" />
+    </svg>
 
-      <!-- 地平线暖雾光带 -->
-      <rect x="0" y="420" width="480" height="70" fill="url(#horizon-mist)" />
+    <!-- 第1/2层: AI 场景图层 (规范 §3.3, scripts/gen_scene_layers.py 生成, 原图+参数落盘可离线重切) -->
+    <!-- 注意: 必须动态绑定 :src —— 静态 src 会被 vite 当导入解析而 500 -->
+    <img class="scene-layer layer-far" :src="'/static/scenes/home_night/layer_far.png'" alt="" />
+    <img class="scene-layer layer-ground" :src="'/static/scenes/home_night/layer_ground.png'" alt="" />
 
-      <!-- 最远山脊 (淡紫, 空气透视最外层) -->
-      <path
-        d="M0,452 C70,428 160,444 250,452 C330,460 420,436 480,448 L480,900 L0,900 Z"
-        fill="#6e4a8a"
-        opacity="0.28"
-      />
+    <!-- 巢位暖光晕 (替代原 SVG 蛋光晕+地面反光) -->
+    <div class="pet-glow"></div>
 
-      <!-- 三层远山（空气透视） + 山间雾带 -->
-      <path
-        d="M0,468 C80,432 152,452 232,468 C320,486 402,442 480,460 L480,900 L0,900 Z"
-        fill="#5e3a7d"
-        opacity="0.42"
-      />
-      <rect x="0" y="446" width="480" height="46" fill="url(#mountain-fog)" />
-      <path
-        d="M0,506 C92,470 182,498 262,510 C352,524 424,486 480,502 L480,900 L0,900 Z"
-        fill="#472a63"
-        opacity="0.62"
-      />
-      <!-- 山谷灯火: 远处村庄的暖光 (呼应蘑菇村) -->
-      <g fill="#ffd9a0">
-        <circle class="tw d1" cx="292" cy="500" r="1.6" filter="url(#blur2)" />
-        <circle class="tw d3" cx="310" cy="505" r="1.2" filter="url(#blur2)" />
-        <circle class="tw d2" cx="326" cy="498" r="1.4" filter="url(#blur2)" />
-        <circle class="tw" cx="342" cy="506" r="1.1" filter="url(#blur2)" />
-        <circle class="tw d2" cx="360" cy="500" r="1.5" filter="url(#blur2)" />
-        <circle class="tw d3" cx="376" cy="507" r="1.1" filter="url(#blur2)" />
-      </g>
-      <rect x="0" y="490" width="480" height="42" fill="url(#mountain-fog)" />
-      <!-- 山脊剪影树丛 -->
-      <g fill="#3d2458" opacity="0.8">
-        <circle cx="60" cy="498" r="5" /><circle cx="74" cy="501" r="4" />
-        <circle cx="420" cy="492" r="5" /><circle cx="434" cy="496" r="4" />
-        <circle cx="448" cy="493" r="4.5" />
-      </g>
-      <path
-        d="M0,556 C110,522 220,552 310,562 C390,570 448,548 480,556 L480,900 L0,900 Z"
-        fill="#35204e"
-        opacity="0.9"
-      />
+    <!-- 魔法蛋（孵化前, 巢位锚点） -->
+    <div v-if="phase !== 'pet'" class="anchor-slot">
+      <svg viewBox="193 518 64 96" class="egg" :class="{ shaking: hatchProgress > 30 }">
+        <path
+          d="M225,548 C237,548 247,568 247,584 C247,598 237,608 225,608 C213,608 203,598 203,584 C203,568 213,548 225,548 Z"
+          fill="url(#egg-body)"
+        />
+        <path
+          d="M207,580 Q216,574 225,580 T243,580"
+          stroke="#b48ac7" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.85"
+        />
+        <circle cx="214" cy="590" r="2.2" fill="#b48ac7" opacity="0.85" />
+        <circle cx="234" cy="592" r="2.2" fill="#b48ac7" opacity="0.85" />
+        <ellipse
+          cx="216" cy="564" rx="4.5" ry="9" fill="#ffffff" opacity="0.6"
+          transform="rotate(-16 216 564)"
+        />
+        <path
+          v-if="phase === 'ready'"
+          d="M225,552 L220,564 L228,574 L221,586 L226,598"
+          stroke="#8a5a3a" stroke-width="2.5" stroke-linecap="round" fill="none"
+        />
+      </svg>
+    </div>
 
-      <!-- 地面 -->
-      <path
-        d="M0,610 C110,578 212,600 302,610 C382,618 442,600 480,608 L480,900 L0,900 Z"
-        fill="#2b1743"
-      />
-      <path d="M0,720 C130,694 280,712 480,700 L480,900 L0,900 Z" fill="#22113a" />
+    <!-- 形象生成中的占位发光小生物 (巢位锚点) -->
+    <div v-if="phase === 'pet' && !spriteReady" class="anchor-slot">
+      <svg viewBox="180 505 90 105" class="pet-creature">
+        <circle cx="225" cy="576" r="58" fill="url(#egg-halo)" />
+        <path d="M212,548 L206,528 L224,542 Z" fill="#fff3dd" />
+        <path d="M238,548 L244,528 L226,542 Z" fill="#fff3dd" />
+        <ellipse cx="225" cy="592" rx="27" ry="20" fill="#fff3dd" />
+        <circle cx="225" cy="562" r="18" fill="#fff3dd" />
+        <circle cx="218" cy="560" r="2.2" fill="#3a2352" />
+        <circle cx="232" cy="560" r="2.2" fill="#3a2352" />
+        <circle cx="212" cy="567" r="3" fill="#f2a0a8" opacity="0.55" />
+        <circle cx="238" cy="567" r="3" fill="#f2a0a8" opacity="0.55" />
+        <circle cx="250" cy="596" r="6" fill="#fff3dd" />
+      </svg>
+    </div>
 
-      <!-- 小水洼: 映着天光与月影, 偶有涟漪 -->
-      <g>
-        <ellipse cx="92" cy="668" rx="52" ry="11" fill="url(#pond-grad)" opacity="0.9" />
-        <ellipse cx="92" cy="666" rx="34" ry="6" fill="#c9b8e8" opacity="0.18" filter="url(#blur2)" />
-        <!-- 月牙倒影 -->
-        <ellipse cx="86" cy="666" rx="7" ry="2" fill="#f2f0ff" opacity="0.4" filter="url(#blur2)" />
-        <ellipse class="ripple r1" cx="92" cy="668" rx="30" ry="6" fill="none"
-                 stroke="#d8c8f0" stroke-width="1" opacity="0" />
-        <ellipse class="ripple r2" cx="92" cy="668" rx="30" ry="6" fill="none"
-                 stroke="#d8c8f0" stroke-width="0.8" opacity="0" />
-      </g>
-
-      <!-- 孤独的树 -->
-      <g>
-        <!-- 枝干 -->
-        <g stroke="#1c0e33" stroke-linecap="round" fill="none">
-          <path d="M388,614 C394,562 384,528 398,478" stroke-width="13" />
-          <path d="M392,532 C380,516 368,510 356,506" stroke-width="6" />
-          <path d="M395,494 C405,480 416,474 428,470" stroke-width="5" />
-        </g>
-        <!-- 树冠 -->
-        <g fill="#1c0e33">
-          <circle cx="398" cy="436" r="46" />
-          <circle cx="358" cy="452" r="31" />
-          <circle cx="430" cy="458" r="32" />
-          <circle cx="356" cy="496" r="24" />
-          <circle cx="436" cy="494" r="23" />
-          <circle cx="396" cy="472" r="34" />
-        </g>
-        <!-- 木漏光斑: 透过树冠洒落的柔光 -->
-        <g fill="#ffe9c8" filter="url(#blur6)">
-          <circle cx="372" cy="520" r="7" opacity="0.14" />
-          <circle cx="410" cy="540" r="5" opacity="0.12" />
-          <circle cx="350" cy="556" r="4" opacity="0.1" />
-          <circle cx="428" cy="516" r="4.5" opacity="0.12" />
-        </g>
-        <!-- 树上挂灯: 灯核+大光晕, 微风摆动 -->
-        <g class="lantern-swing">
-          <line x1="428" y1="470" x2="428" y2="502" stroke="rgba(255,233,168,0.35)" stroke-width="1" />
-          <circle cx="428" cy="506" r="10" fill="#ffdf9e" opacity="0.3" filter="url(#blur6)" />
-          <circle class="glow-dot" cx="428" cy="506" r="3.4" fill="#ffe9a8" filter="url(#blur2)" />
-        </g>
-        <g class="lantern-swing ls2">
-          <line x1="356" y1="506" x2="356" y2="532" stroke="rgba(255,233,168,0.35)" stroke-width="1" />
-          <circle cx="356" cy="536" r="8" fill="#ffdf9e" opacity="0.28" filter="url(#blur6)" />
-          <circle class="glow-dot gd2" cx="356" cy="536" r="2.6" fill="#ffe9a8" filter="url(#blur2)" />
-        </g>
-      </g>
-
+    <!-- 第5层: 动效粒子+收尾 (AI 图层之上) -->
+    <svg
+      class="scene-svg scene-front"
+      viewBox="0 0 480 900"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+    >
       <!-- 飘落花瓣: 从树的方向随风飘来 -->
       <g fill="#f6c9d8">
         <path class="petal p1" d="M420,470 q3,-2 5,1 q-1,3 -4,2 q-2,-1 -1,-3 Z" opacity="0.85" />
@@ -525,78 +477,6 @@ function itemNameById(itemId: string): string {
         <path class="petal p3" d="M440,530 q3,-2 5,1 q-1,3 -4,2 q-2,-1 -1,-3 Z" opacity="0.8" />
         <path class="petal p4" d="M370,560 q2.6,-1.8 4.4,0.9 q-0.9,2.6 -3.5,1.8 q-1.8,-0.9 -0.9,-2.7 Z" opacity="0.7" />
         <path class="petal p5" d="M410,600 q2.6,-1.8 4.4,0.9 q-0.9,2.6 -3.5,1.8 q-1.8,-0.9 -0.9,-2.7 Z" opacity="0.75" />
-      </g>
-
-      <!-- 地面反光（蛋的光映在草地上） -->
-      <ellipse cx="225" cy="626" rx="86" ry="12" fill="#ffdf9e" opacity="0.16" filter="url(#blur6)" />
-
-      <!-- 蛋的光晕 -->
-      <circle class="halo" cx="225" cy="576" r="94" fill="url(#egg-halo)" />
-
-      <!-- 巢 -->
-      <g fill="none" stroke-linecap="round">
-        <path d="M166,618 Q225,598 284,618" stroke="#59371f" stroke-width="10" />
-        <path d="M172,626 Q225,608 278,626" stroke="#6d4527" stroke-width="8" />
-        <path d="M182,632 Q225,618 268,632" stroke="#472a16" stroke-width="7" />
-        <path d="M188,612 L202,620 M214,606 L228,614 M246,608 L260,616" stroke="#7d5230" stroke-width="3" />
-      </g>
-
-      <!-- 魔法蛋（孵化后隐藏） -->
-      <g v-if="phase !== 'pet'" class="egg" :class="{ shaking: hatchProgress > 30 }">
-        <path
-          d="M225,548 C237,548 247,568 247,584 C247,598 237,608 225,608 C213,608 203,598 203,584 C203,568 213,548 225,548 Z"
-          fill="url(#egg-body)"
-        />
-        <!-- 花纹 -->
-        <path
-          d="M207,580 Q216,574 225,580 T243,580"
-          stroke="#b48ac7"
-          stroke-width="3"
-          stroke-linecap="round"
-          fill="none"
-          opacity="0.85"
-        />
-        <circle cx="214" cy="590" r="2.2" fill="#b48ac7" opacity="0.85" />
-        <circle cx="234" cy="592" r="2.2" fill="#b48ac7" opacity="0.85" />
-        <!-- 高光 -->
-        <ellipse
-          cx="216"
-          cy="564"
-          rx="4.5"
-          ry="9"
-          fill="#ffffff"
-          opacity="0.6"
-          transform="rotate(-16 216 564)"
-        />
-        <!-- 孵化值满: 裂纹 -->
-        <path
-          v-if="phase === 'ready'"
-          d="M225,552 L220,564 L228,574 L221,586 L226,598"
-          stroke="#8a5a3a"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          fill="none"
-        />
-      </g>
-
-      <!-- 孵化后的宠物（简约发光小生物, 漂浮在巢上; 生成形象就绪后由 PetSprite 替换） -->
-      <g v-if="phase === 'pet' && !spriteReady" class="pet-creature">
-        <circle cx="225" cy="576" r="58" fill="url(#egg-halo)" />
-        <!-- 耳朵 -->
-        <path d="M212,548 L206,528 L224,542 Z" fill="#fff3dd" />
-        <path d="M238,548 L244,528 L226,542 Z" fill="#fff3dd" />
-        <!-- 身体 -->
-        <ellipse cx="225" cy="592" rx="27" ry="20" fill="#fff3dd" />
-        <!-- 头 -->
-        <circle cx="225" cy="562" r="18" fill="#fff3dd" />
-        <!-- 眼睛 -->
-        <circle cx="218" cy="560" r="2.2" fill="#3a2352" />
-        <circle cx="232" cy="560" r="2.2" fill="#3a2352" />
-        <!-- 腮红 -->
-        <circle cx="212" cy="567" r="3" fill="#f2a0a8" opacity="0.55" />
-        <circle cx="238" cy="567" r="3" fill="#f2a0a8" opacity="0.55" />
-        <!-- 小尾巴 -->
-        <circle cx="250" cy="596" r="6" fill="#fff3dd" />
       </g>
 
       <!-- 宠物周尘埃光粒: 缓缓升起 -->
@@ -802,13 +682,55 @@ function itemNameById(itemId: string): string {
   width: 100%;
   height: 100%;
 }
+.scene-front {
+  pointer-events: none;
+}
 
-/* 生成形象层: 覆盖在巢穴位置 (v1.3 布局红线: 上移+略缩, 完整露出不被操作坞遮挡) */
+/* AI 场景图层 (规范 §3.3): 底对齐, 放大 220% 让内容占据中下部 (竖屏比例补偿), 左右裁切取中段 */
+.scene-layer {
+  position: absolute;
+  left: -60%;
+  bottom: 0;
+  width: 220%;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 巢位暖光晕 (替代原 SVG 蛋光晕+地面反光) */
+.pet-glow {
+  position: absolute;
+  left: 40%;
+  bottom: 24%;
+  width: 52%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(255, 223, 158, 0.32), rgba(255, 223, 158, 0) 62%);
+  animation: halo-breathe 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 巢位锚点槽 (蛋/占位宠物): 与合成目检图同一锚点 (规范 §3.3 铁律1) */
+.anchor-slot {
+  position: absolute;
+  left: 40%;
+  bottom: 26%;
+  width: 24%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.anchor-slot svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+/* 生成形象层: 帧动画宠物 (巢位锚点, 底部对齐 = 脚踩草地; H2: 旅行中不显示) */
 .sprite-layer {
   position: absolute;
-  left: 47%;
-  top: 33%;
-  width: 40%;
+  left: 40%;
+  bottom: 26%;
+  height: 27%;
   aspect-ratio: 1;
   transform: translateX(-50%);
   pointer-events: none;
@@ -1272,11 +1194,11 @@ function itemNameById(itemId: string): string {
   border: 1px solid rgba(122, 85, 48, 0.3);
 }
 
-/* ===== 归来便签信 (H3, 规范 v1.1): 钉在树上的纸便签, 不遮挡宠物 ===== */
+/* ===== 归来便签信 (H3, 规范 v1.1): 钉在远景树上的纸便签, 不遮挡宠物 ===== */
 .pinned-note {
   position: absolute;
-  right: 12%;
-  top: 45%;
+  right: 27%;
+  top: 42%;
   z-index: 12;
   display: flex;
   flex-direction: column;

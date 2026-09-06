@@ -38,18 +38,57 @@ def placeholder(item: dict, path: Path) -> None:
     img.save(path)
 
 
+def generate_live(item: dict, path: Path) -> None:
+    """实跑: Ark 生图 + 白底抠图 (复用 petgen 工艺)。原始图落盘支持离线重切"""
+    import json as _json
+
+    from PIL import Image
+
+    from backend.app.services.petgen.pipeline import (
+        ArkImageClient,
+        cutout_white_bg,
+        download,
+    )
+
+    raw_dir = OUT_DIR / "_raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    client = ArkImageClient()
+    prompt = (
+        f"单个游戏道具图标, {item['appearance']}, 居中, 手绘童话插画风, 暖色调, "
+        "纯白色背景, 无阴影, 无文字, 无边框"
+    )
+    url = client.generate_image(prompt, size="2048x2048")  # 该端点只认 2048x2048 (1024 实测 400)
+    raw = raw_dir / f"{item['id']}.jpg"
+    download(url, raw)
+    img = cutout_white_bg(Image.open(raw))
+    bbox = img.getchannel("A").getbbox()
+    if bbox:
+        img = img.crop(bbox)
+    # 统一 256 边长居中
+    side = 256
+    ratio = (side * 0.85) / max(img.width, img.height)
+    img = img.resize((max(1, int(img.width * ratio)), max(1, int(img.height * ratio))), Image.LANCZOS)
+    canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    canvas.paste(img, ((side - img.width) // 2, (side - img.height) // 2), img)
+    canvas.save(path)
+    (raw_dir / f"{item['id']}.prompt.json").write_text(
+        _json.dumps({"item": item["id"], "prompt": prompt}, ensure_ascii=False), encoding="utf-8")
+    print(f"[item-image] 实跑生成 {item['id']}")
+
+
 def main() -> None:
     live = "--live" in sys.argv
+    force = "--force" in sys.argv
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    if live:
-        # TODO: 生图套餐恢复后在此实跑 Ark 生成 + QC; 当前直接拒绝, 防止误烧钱
-        raise SystemExit("live 模式尚未接入 Ark (生图套餐不可用), 请先用占位模式")
     for item in catalog.ITEMS.values():
         path = OUT_DIR / f"{item['id']}.png"
-        if path.exists():
-            continue  # 幂等: 已有图(如实跑产物)不覆盖
-        placeholder(item, path)
-        print(f"[item-image] 占位图 {item['id']}")
+        if path.exists() and not force:
+            continue  # 幂等: 已有图(如实跑产物)不覆盖; --force 可重跑覆盖占位图
+        if live:
+            generate_live(item, path)
+        else:
+            placeholder(item, path)
+            print(f"[item-image] 占位图 {item['id']}")
 
 
 if __name__ == "__main__":

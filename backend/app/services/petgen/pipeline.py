@@ -35,6 +35,24 @@ DOWNLOAD_RETRY = 4
 _DEFAULT_ROOT = Path(__file__).resolve().parents[3] / "static" / "pets"
 
 
+def cutout_white_bg(img: Image.Image, threshold: int = 235) -> Image.Image:
+    """整幅白底抠图 (场景图层/物品图标共用): 近白洪泛去底 + 填洞 + 羽化。
+
+    与 _cutout_cell 的工艺同族, 但不按格切、不做面积离群 QC。
+    """
+    a = np.asarray(img.convert("RGB")).astype(np.float32)
+    whitish = a.min(axis=2) > threshold
+    whitish = ndimage.binary_opening(whitish, iterations=2)
+    lbl, _ = ndimage.label(whitish)
+    border = set(np.unique(np.concatenate([lbl[0, :], lbl[-1, :], lbl[:, 0], lbl[:, -1]])))
+    border.discard(0)
+    fg = ~np.isin(lbl, list(border))
+    fg = ndimage.binary_fill_holes(fg)
+    alpha = (fg * 255).astype(np.uint8)
+    alpha = np.clip(ndimage.gaussian_filter(alpha.astype(np.float32), sigma=1.2), 0, 255).astype(np.uint8)
+    return Image.fromarray(np.dstack([a.astype(np.uint8), alpha]), "RGBA")
+
+
 class PetGenError(Exception):
     """生成管线异常: 触发降级链"""
 
