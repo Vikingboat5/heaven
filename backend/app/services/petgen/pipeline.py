@@ -199,7 +199,23 @@ def _cutout_cell(cell: Image.Image, profile: StyleProfile) -> np.ndarray:
     if profile.feather_sigma > 0:
         alpha = np.clip(ndimage.gaussian_filter(
             alpha.astype(np.float32), sigma=profile.feather_sigma), 0, 255).astype(np.uint8)
-    return np.dstack([a.astype(np.uint8), alpha])
+    return _decontaminate(np.dstack([a.astype(np.uint8), alpha]))
+
+
+def _decontaminate(rgba: np.ndarray) -> np.ndarray:
+    """边缘去白边: 半透明边缘像素的 RGB 替换为最近不透明内部像素的颜色。
+
+    白底抠图的边缘羽化会带出一圈浅色边 (深色场景下明显)。颜色去污染是行业标准做法。
+    """
+    alpha = rgba[..., 3]
+    edge = (alpha > 0) & (alpha < 200)
+    interior = alpha >= 200
+    if not edge.any() or not interior.any():
+        return rgba
+    _, idx = ndimage.distance_transform_edt(~interior, return_indices=True)
+    for c in range(3):
+        rgba[..., c][edge] = rgba[..., c][idx[0][edge], idx[1][edge]]
+    return rgba
 
 
 def _normalize(rgba: np.ndarray, profile: StyleProfile) -> Image.Image:

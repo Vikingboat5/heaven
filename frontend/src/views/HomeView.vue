@@ -528,15 +528,14 @@ function itemNameById(itemId: string): string {
       <PetSprite ref="spriteRef" :pet-id="pet.id" action="idle" />
     </div>
 
-    <!-- H3: 归来便签信 —— 钉在树上的纸便签 (规范 v1.1: 功能物=场景实物), 点击才拆开 -->
+    <!-- H3: 归来便签信 —— AI 手绘便签纸钉在树旁, 点击才拆开 -->
     <button
       v-if="letter && !letterOpen"
       class="pinned-note"
       aria-label="拆开旅行信件"
       @click="openLetter"
     >
-      <span class="pin"></span>
-      <span class="pinned-note-icon">✉️</span>
+      <img class="pinned-note-icon" :src="'/static/ui/icon_letter.png'" alt="" />
       <span class="pinned-note-label">{{ pet?.name }}的信</span>
     </button>
 
@@ -620,15 +619,15 @@ function itemNameById(itemId: string): string {
         </span>
       </div>
       <template v-else>
-        <!-- 左下: 主动作大木牌 (学旅行青蛙「准备」, 插画+文字) -->
+        <!-- 左下: 主动作大木牌 (学旅行青蛙「准备」, AI 手绘木牌+背包图标) -->
         <router-link to="/pack" class="wood-btn wood-primary">
-          <span class="wood-icon">🎒</span>
+          <img class="wood-icon-img" :src="'/static/ui/icon_pack.png'" alt="" />
           <span>打包行李</span>
         </router-link>
       </template>
-      <!-- 右下: 次导航木牌 (插画+文字) -->
+      <!-- 右下: 次导航木牌 (AI 手绘收藏篮图标) -->
       <router-link to="/collection" class="wood-btn wood-side">
-        <span class="wood-icon">🧺</span>
+        <img class="wood-icon-img" :src="'/static/ui/icon_basket.png'" alt="" />
         <span>收藏</span>
       </router-link>
     </template>
@@ -730,7 +729,7 @@ function itemNameById(itemId: string): string {
   position: absolute;
   left: 40%;
   bottom: 26%;
-  height: 27%;
+  height: 23%;
   aspect-ratio: 1;
   transform: translateX(-50%);
   pointer-events: none;
@@ -1052,20 +1051,19 @@ function itemNameById(itemId: string): string {
   border-color: rgba(242, 165, 110, 0.55);
 }
 
-/* 宠物木牌上的文字 (规范 v1.1 §1: 木牌用奶白文字) */
+/* 宠物木牌上的文字 (规范 v1.2: AI 木牌底为浅色蜂蜜木, 用深棕文字) */
 .pet-name {
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-xxl);
   font-weight: 700;
   letter-spacing: 2px;
-  color: #ffedc9;
-  text-shadow: 0 1px 2px rgba(60, 30, 10, 0.6);
+  color: #4a3320;
 }
 .pet-species {
   margin: 2px 0 0;
   font-size: var(--fs-sm);
-  color: rgba(255, 237, 201, 0.8);
+  color: rgba(74, 51, 32, 0.75);
 }
 .chips {
   display: flex;
@@ -1077,9 +1075,9 @@ function itemNameById(itemId: string): string {
   border-radius: 999px;
   font-size: var(--fs-xs);
   letter-spacing: 1px;
-  color: #ffe3b3;
-  background: rgba(60, 35, 15, 0.35);
-  border: 1px solid rgba(255, 235, 200, 0.3);
+  color: #6b4423;
+  background: rgba(122, 74, 30, 0.12);
+  border: 1px solid rgba(122, 74, 30, 0.35);
 }
 
 /* 轻提示 */
@@ -1100,23 +1098,20 @@ function itemNameById(itemId: string): string {
 }
 
 /* ===== 宠物阶段环形贴边 UI (规范 v1.1 §3.2) ===== */
-/* 顶左: 宠物信息木牌 */
+/* 顶左: 宠物信息木牌 (AI 手绘木牌底, 深棕文字) */
 .pet-plaque {
   position: absolute;
   z-index: 2;
   top: 14px;
   left: 14px;
   max-width: 72%;
+  min-width: 210px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px 9px 9px;
-  border: 2px solid var(--color-wood-edge);
-  border-radius: 14px;
-  background:
-    repeating-linear-gradient(90deg, rgba(60, 35, 15, 0.07) 0 2px, transparent 2px 8px),
-    var(--gradient-wood);
-  box-shadow: 0 6px 18px rgba(10, 6, 20, 0.45), inset 0 1px 0 rgba(255, 235, 200, 0.3);
+  padding: 10px 20px 12px 14px;
+  background: url('/static/ui/wood_plaque.png') center / 100% 100% no-repeat;
+  filter: drop-shadow(0 6px 14px rgba(10, 6, 20, 0.45));
   rotate: -1.2deg;
 }
 .plaque-avatar {
@@ -1124,8 +1119,8 @@ function itemNameById(itemId: string): string {
   height: 52px;
   flex: none;
   border-radius: 10px;
-  border: 2px solid rgba(255, 237, 201, 0.5);
-  background: rgba(60, 35, 15, 0.35);
+  border: 2px solid rgba(122, 74, 30, 0.5);
+  background: rgba(255, 247, 230, 0.5);
   object-fit: cover;
 }
 .plaque-info {
@@ -1134,7 +1129,7 @@ function itemNameById(itemId: string): string {
 .plaque-hint {
   margin: 6px 0 0;
   font-size: var(--fs-xs);
-  color: rgba(255, 237, 201, 0.75);
+  color: rgba(74, 51, 32, 0.75);
   letter-spacing: 0.5px;
   white-space: nowrap;
   overflow: hidden;
@@ -1146,18 +1141,26 @@ function itemNameById(itemId: string): string {
   z-index: 2;
   left: 16px;
   bottom: 16px;
-  padding: 13px 26px;
+  padding: 14px 34px 16px;
   font-size: var(--fs-xl);
   rotate: -1.5deg;
+}
+.wood-primary .wood-icon-img {
+  width: 40px;
+  height: 40px;
 }
 .wood-side {
   position: absolute;
   z-index: 2;
   right: 16px;
   bottom: 16px;
-  padding: 10px 18px;
+  padding: 12px 24px 13px;
   font-size: var(--fs-md);
   rotate: 1.2deg;
+}
+.wood-side .wood-icon-img {
+  width: 32px;
+  height: 32px;
 }
 /* 旅行中: 底部纸张细横幅 (H2, 学农场任务条) */
 .away-banner {
@@ -1194,7 +1197,7 @@ function itemNameById(itemId: string): string {
   border: 1px solid rgba(122, 85, 48, 0.3);
 }
 
-/* ===== 归来便签信 (H3, 规范 v1.1): 钉在远景树上的纸便签, 不遮挡宠物 ===== */
+/* ===== 归来便签信 (H3, 规范 v1.2): AI 手绘便签纸(自带图钉)钉在树旁, 不遮挡宠物 ===== */
 .pinned-note {
   position: absolute;
   right: 27%;
@@ -1203,12 +1206,12 @@ function itemNameById(itemId: string): string {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 15px 16px 9px;
-  border: 1px solid var(--color-paper-edge);
-  border-radius: 6px;
-  background: linear-gradient(175deg, #f9efdb, #efdfbe);
-  box-shadow: 0 6px 18px rgba(10, 6, 20, 0.5), 0 0 24px rgba(255, 230, 170, 0.22);
+  gap: 0;
+  width: 96px;
+  padding: 30px 10px 12px;
+  border: none;
+  background: url('/static/ui/paper_note.png') center / 100% 100% no-repeat;
+  filter: drop-shadow(0 6px 14px rgba(10, 6, 20, 0.5)) drop-shadow(0 0 18px rgba(255, 230, 170, 0.25));
   cursor: pointer;
   rotate: -3deg;
   animation: note-bob 1.6s ease-in-out infinite;
@@ -1217,21 +1220,13 @@ function itemNameById(itemId: string): string {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-7px); }
 }
-.pin {
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  margin-left: -5px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ff9d7a, #d44a3c);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-}
 .pinned-note-icon {
-  font-size: 24px;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 .pinned-note-label {
+  margin-top: 2px;
   font-size: var(--fs-xs);
   letter-spacing: 1px;
   font-weight: 600;
