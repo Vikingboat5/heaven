@@ -28,17 +28,32 @@ TRAVEL_MIN_HOURS = 2       # 旅行最短时长
 TRAVEL_MAX_HOURS = 6       # 旅行最长时长
 
 _POLISH_SYSTEM = (
-    "你是宠物旅行日记润色助手。根据旅行背景、基调和事件列表, 改写成150字以内、温馨可爱的"
-    "第一人称小故事(宠物视角, 可带动作表情)。规则: 宠物不认识人类世界的名人和地名, "
-    "只能用它看到的模样来描述(陌生化转述), 绝不写出真实人名/地名/作品名。只输出故事正文。"
+    "你是宠物写给主人的旅行信。根据旅行背景、基调和事件列表, 改写成150字以内、温馨可爱的"
+    "第一人称(宠物视角)的信。规则:\n"
+    "1. 这是写给主人的信, 像孩子给家长讲今天的见闻; 不是动作日志——"
+    "禁止逐字描述自己的细枝末节动作(如\"我舔舔嘴巴\"), 禁止\"动作+冒号+感叹\"的句式。\n"
+    "2. 逻辑自洽: 食物才能说好吃, 地方只能说美/好玩。\n"
+    "3. 宠物不认识人类世界的名人和地名, 只能用它看到的模样来描述(陌生化转述), "
+    "绝不写出真实人名/地名/作品名。\n"
+    "4. 如果带回了物品, 自然地提到是想着主人才带回来的(挑1件提, 不罗列清单)。\n"
+    "5. 结尾落在对主人的想念或期待分享上。\n"
+    "只输出信的正文。"
 )
 
 
-def _fallback_narrative(pet_name: str, events: list[dict]) -> str:
+def _item_names(item_ids: list[str]) -> list[str]:
+    """item_id → 玩家可见名 (写信/兜底模板用)"""
+    return [catalog.ITEMS[i]["name"] for i in item_ids if i in catalog.ITEMS]
+
+
+def _fallback_narrative(pet_name: str, events: list[dict], item_ids: list[str] | None = None) -> str:
+    names = _item_names(item_ids or [])
+    gift_clause = f"还给主人带了「{names[0]}」, 想和你一起分享。" if names else ""
     if not events:
-        return f"{pet_name}出了一趟门, 安安静静地回来了。"
+        return f"{pet_name}出了一趟门, 安安静静地回来了。{gift_clause}"
     highlights = "；".join(e["text"] for e in events[:3])
-    return f"{pet_name}这次旅行去了不少地方：{highlights}。一共经历了 {len(events)} 件事, 平平安安地回家了。"
+    return (f"{pet_name}这次旅行去了不少地方：{highlights}。{gift_clause}"
+            f"一共经历了 {len(events)} 件事, 平平安安地回家了。")
 
 
 def is_away(pet: Pet) -> bool:
@@ -110,16 +125,20 @@ def validate_loadout(pet: Pet, loadout: dict) -> str | None:
     return None
 
 
-async def _polish_narrative(pet: Pet, seed_def: dict, flavor: str, events: list[dict]) -> str:
+async def _polish_narrative(pet: Pet, seed_def: dict, flavor: str, events: list[dict],
+                            item_ids: list[str] | None = None) -> str:
     if not events:
-        return _fallback_narrative(pet.name, events)
+        return _fallback_narrative(pet.name, events, item_ids)
     lines = "\n".join(f"{e['time'][11:16]} {e['text']}" for e in events[:8])
     cast = "；".join(c["desc_words"] for c in seed_def.get("cast", [])) or "无"
+    names = _item_names(item_ids or [])
+    gifts = "、".join(names) if names else "无"
     user_prompt = (
         f"宠物「{pet.name}」的旅行:\n"
         f"背景: {seed_def.get('background', '')} (氛围: {seed_def.get('atmosphere', '')})\n"
         f"出场的角色: {cast}\n"
         f"本趟基调: {catalog.FLAVOR_LABELS.get(flavor, flavor)}\n"
+        f"带回给主人的物品: {gifts}\n"
         f"事件:\n{lines}"
     )
     try:
@@ -132,10 +151,10 @@ async def _polish_narrative(pet: Pet, seed_def: dict, flavor: str, events: list[
             temperature=0.7,
         )
         narrative = result.content.strip()
-        return narrative if narrative else _fallback_narrative(pet.name, events)
+        return narrative if narrative else _fallback_narrative(pet.name, events, item_ids)
     except Exception as e:
         print(f"[adventure] 日记润色失败, 降级模板: {e}")  # 兜底留痕
-        return _fallback_narrative(pet.name, events)
+        return _fallback_narrative(pet.name, events, item_ids)
 
 
 async def _settle_trip(db: Session, pet: Pet, travel: dict) -> AdventureLog:
@@ -154,7 +173,8 @@ async def _settle_trip(db: Session, pet: Pet, travel: dict) -> AdventureLog:
         seed=f"{pet.hatch_seed}:{pet.id}",
         loadout=pet.loadout or {},
     )
-    narrative = await _polish_narrative(pet, seed_def, result.flavor, result.events)
+    narrative = await _polish_narrative(pet, seed_def, result.flavor, result.events,
+                                        item_ids=result.rewards["items"])
 
     # ---- 物品结算: 收获入包(is_new) + 首发现回填 + 行囊消耗/交换扣减 ----
     gained: list[dict] = []

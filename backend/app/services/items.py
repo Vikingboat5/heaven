@@ -96,20 +96,27 @@ def enrich_entry(entry: dict) -> dict:
 
 
 def reward_items_out(items: list) -> list[dict]:
-    """日志 rewards.items (存 [{item, is_new}]) → 富化输出"""
-    out = []
+    """日志 rewards.items (存 [{item, is_new}]) → 富化输出; 同物品合并计数 (信件展示用)"""
+    merged: dict[str, dict] = {}
+    order: list[str] = []
     for e in items:
         iid = e.get("item") if isinstance(e, dict) else str(e)
-        it = catalog.ITEMS.get(iid, {})
-        out.append({
-            "item_id": iid,
-            "name": it.get("name", iid),
-            "rarity": it.get("rarity", "common"),
-            "attr": it.get("attr", "antique"),
-            "image": it.get("image", ""),
-            "is_new": bool(e.get("is_new")) if isinstance(e, dict) else False,
-        })
-    return out
+        if iid not in merged:
+            it = catalog.ITEMS.get(iid, {})
+            merged[iid] = {
+                "item_id": iid,
+                "name": it.get("name", iid),
+                "rarity": it.get("rarity", "common"),
+                "attr": it.get("attr", "antique"),
+                "image": it.get("image", ""),
+                "is_new": bool(e.get("is_new")) if isinstance(e, dict) else False,
+                "count": 0,
+            }
+            order.append(iid)
+        merged[iid]["count"] += 1
+        if isinstance(e, dict) and e.get("is_new"):
+            merged[iid]["is_new"] = True
+    return [merged[iid] for iid in order]
 
 
 def catalog_out(db: Session, pet: Pet | None) -> list[dict]:

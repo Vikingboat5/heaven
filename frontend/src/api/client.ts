@@ -76,7 +76,7 @@ export interface PetOut {
   away: boolean
   travel: Record<string, string>
 }
-/** 收获物品 (日志/信件里的富化结构) */
+/** 收获物品 (日志/信件里的富化结构; 同物品已按 count 合并) */
 export interface RewardItemOut {
   item_id: string
   name: string
@@ -84,6 +84,7 @@ export interface RewardItemOut {
   attr: string
   image: string
   is_new: boolean
+  count: number
 }
 export interface AdventureLogOut {
   id: number

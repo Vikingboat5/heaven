@@ -155,7 +155,7 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
               :key="idx"
               :src="itemImageUrl(it.image)"
               :alt="it.name"
-              :title="it.name"
+              :title="it.count > 1 ? `${it.name} ×${it.count}` : it.name"
               class="reward-thumb"
               :class="`rarity-${it.rarity}`"
             />

@@ -11,8 +11,8 @@ from backend.app.services import adventure, items as item_service
 @pytest.fixture(autouse=True)
 def _noop_polish(monkeypatch):
     """日记润色不触网: 直接降级模板 (LLM 措辞由 prompt 单测另行保证)"""
-    async def fallback(pet, seed_def, flavor, events):
-        return adventure._fallback_narrative(pet.name, events)
+    async def fallback(pet, seed_def, flavor, events, item_ids=None):
+        return adventure._fallback_narrative(pet.name, events, item_ids)
 
     monkeypatch.setattr(adventure, "_polish_narrative", fallback)
 

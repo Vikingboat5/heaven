@@ -766,7 +766,7 @@ function itemNameById(itemId: string): string {
             :class="`rarity-${it.rarity}`"
           >
             <img :src="itemImageUrl(it.image)" :alt="it.name" class="letter-item-img" />
-            <span class="letter-item-name">{{ it.name }}</span>
+            <span class="letter-item-name">{{ it.name }}<template v-if="it.count > 1"> ×{{ it.count }}</template></span>
             <span class="letter-item-rarity">{{ RARITY_LABELS[it.rarity] }}</span>
             <span v-if="it.is_new" class="new-badge badge-pulse">NEW!</span>
           </div>
