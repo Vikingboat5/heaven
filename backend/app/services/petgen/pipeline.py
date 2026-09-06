@@ -135,6 +135,24 @@ def _cutout_cell(cell: Image.Image, profile: StyleProfile) -> np.ndarray:
             if sizes[i] > sizes.max() * 0.02:
                 keep |= comp == (i + 1)
         fg = keep
+    # 线条瑕疵清除 (2026-09 实测: 模型爱在格内画格线角标, 残片与角色不相连,
+    # 且拐角相连成 L 形后 bbox 很宽——按形状判: 跨度 ≥150px 而填充率 < 4% 即线条/细框)
+    comp2, nc2 = ndimage.label(fg)
+    if nc2 > 1:
+        areas2 = ndimage.sum(fg, comp2, range(1, nc2 + 1))
+        main_label = int(np.argmax(areas2)) + 1
+        for i in range(1, nc2 + 1):
+            if i == main_label:
+                continue  # 主角永不删
+            ys, xs = np.where(comp2 == i)
+            if len(xs) == 0:
+                continue
+            bh = int(ys.max()) - int(ys.min()) + 1
+            bw = int(xs.max()) - int(xs.min()) + 1
+            fill = len(xs) / (bh * bw)
+            # 低填充率长线(L形格线框) 或 实心细条(断线残片)
+            if (max(bh, bw) >= 150 and fill < 0.04) or (min(bh, bw) <= 6 and max(bh, bw) >= 60):
+                fg[comp2 == i] = False
     # ② 填闭合空洞
     fg = ndimage.binary_fill_holes(fg)
     alpha = (fg * 255).astype(np.uint8)
