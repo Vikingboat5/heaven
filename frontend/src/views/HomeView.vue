@@ -619,14 +619,14 @@ function itemNameById(itemId: string): string {
         </span>
       </div>
       <template v-else>
-        <!-- 左下: 主动作大木牌 (学旅行青蛙「准备」, AI 手绘木牌+背包图标) -->
-        <router-link to="/pack" class="wood-btn wood-primary">
+        <!-- 左下: 主动作 = 搁在草地上的背包 (场景实物直放, 无底板) -->
+        <router-link to="/pack" class="wood-btn scene-entry wood-primary">
           <img class="wood-icon-img" :src="'/static/ui/icon_pack.png'" alt="" />
           <span>打包行李</span>
         </router-link>
       </template>
-      <!-- 右下: 次导航木牌 (AI 手绘收藏篮图标) -->
-      <router-link to="/collection" class="wood-btn wood-side">
+      <!-- 右下: 收藏篮 (场景实物直放, 无底板) -->
+      <router-link to="/collection" class="wood-btn scene-entry wood-side">
         <img class="wood-icon-img" :src="'/static/ui/icon_basket.png'" alt="" />
         <span>收藏</span>
       </router-link>
@@ -1135,32 +1135,43 @@ function itemNameById(itemId: string): string {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 左下/右下木牌定位 (rotate 用独立属性, 不与按压 scale 冲突) */
+/* 左下/右下入口定位 (rotate 用独立属性, 不与按压 scale 冲突) */
 .wood-primary {
   position: absolute;
   z-index: 2;
-  left: 16px;
-  bottom: 16px;
-  padding: 14px 34px 16px;
-  font-size: var(--fs-lg);   /* 入口字号统一 (规范 §2), 主从靠木牌大小区分 */
+  left: 20px;
+  bottom: 18px;
   rotate: -1.5deg;
 }
 .wood-primary .wood-icon-img {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
 }
 .wood-side {
   position: absolute;
   z-index: 2;
-  right: 16px;
-  bottom: 16px;
-  padding: 16px 26px 16px;
-  font-size: var(--fs-lg);   /* 入口字号统一 (规范 §2) */
+  right: 20px;
+  bottom: 18px;
   rotate: 1.2deg;
 }
 .wood-side .wood-icon-img {
-  width: 30px;
-  height: 30px;
+  width: 46px;
+  height: 46px;
+}
+/* 场景入口: 实物直放无底板 (规范 v1.2 §5: 主页入口是场景里的实物, 不是贴上去的板子) */
+.scene-entry {
+  background: none;
+  filter: none;
+  padding: 4px 6px;
+  gap: 4px;
+}
+.scene-entry .wood-icon-img {
+  filter: drop-shadow(0 4px 6px rgba(10, 6, 20, 0.55));
+}
+.scene-entry span {
+  color: #fdf6ec;
+  letter-spacing: 3px;
+  text-shadow: 0 1px 3px rgba(10, 6, 20, 0.9), 0 0 10px rgba(10, 6, 20, 0.6);
 }
 /* 旅行中: 底部纸张细横幅 (H2, 学农场任务条) */
 .away-banner {
@@ -1200,8 +1211,8 @@ function itemNameById(itemId: string): string {
 /* ===== 归来便签信 (H3, 规范 v1.2): AI 手绘便签纸(自带图钉)钉在树旁, 不遮挡宠物 ===== */
 .pinned-note {
   position: absolute;
-  right: 27%;
-  top: 42%;
+  right: 14%;
+  top: 46%;
   z-index: 12;
   display: flex;
   flex-direction: column;
