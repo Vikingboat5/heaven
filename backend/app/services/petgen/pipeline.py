@@ -53,6 +53,28 @@ def cutout_white_bg(img: Image.Image, threshold: int = 235) -> Image.Image:
     return Image.fromarray(np.dstack([a.astype(np.uint8), alpha]), "RGBA")
 
 
+def cutout_dominant_bg(img: Image.Image, tol: float = 48.0) -> Image.Image:
+    """主色背景抠图 (白色物品专用: 白糕/玻璃/贝壳在白底上对比度为零, 需换浅蓝底生成)。
+
+    背景色不硬编码: 取四边像素的中位数色, 按颜色距离分类背景 → 洪泛去底 → 填洞 → 羽化。
+    对任何纯色背景都成立 (含白色, 可完全替代 cutout_white_bg)。
+    """
+    a = np.asarray(img.convert("RGB")).astype(np.float32)
+    border_px = np.concatenate([a[0, :, :], a[-1, :, :], a[:, 0, :], a[:, -1, :]])
+    bg_color = np.median(border_px, axis=0)
+    dist = np.sqrt(((a - bg_color) ** 2).sum(axis=2))
+    is_bg = dist < tol
+    is_bg = ndimage.binary_opening(is_bg, iterations=2)
+    lbl, _ = ndimage.label(is_bg)
+    border = set(np.unique(np.concatenate([lbl[0, :], lbl[-1, :], lbl[:, 0], lbl[:, -1]])))
+    border.discard(0)
+    fg = ~np.isin(lbl, list(border))
+    fg = ndimage.binary_fill_holes(fg)
+    alpha = (fg * 255).astype(np.uint8)
+    alpha = np.clip(ndimage.gaussian_filter(alpha.astype(np.float32), sigma=1.2), 0, 255).astype(np.uint8)
+    return Image.fromarray(np.dstack([a.astype(np.uint8), alpha]), "RGBA")
+
+
 class PetGenError(Exception):
     """生成管线异常: 触发降级链"""
 

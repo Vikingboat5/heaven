@@ -39,28 +39,37 @@ def placeholder(item: dict, path: Path) -> None:
 
 
 def generate_live(item: dict, path: Path) -> None:
-    """实跑: Ark 生图 + 白底抠图 (复用 petgen 工艺)。原始图落盘支持离线重切"""
+    """实跑: Ark 生图 + 抠图 (复用 petgen 工艺)。原始图落盘支持离线重切
+
+    白色系物品 (白糕/玻璃/贝壳等) 在白底上对比度为零 → 换浅蓝底生成,
+    抠图用主色背景法 (背景色不进最终 PNG, 观感与白色系一致)。
+    """
     import json as _json
 
     from PIL import Image
 
     from backend.app.services.petgen.pipeline import (
         ArkImageClient,
-        cutout_white_bg,
+        cutout_dominant_bg,
         download,
     )
+
+    # 白色系外观关键词 → 浅蓝底 (实测白糕白底抠图会整块糊掉)
+    pale = any(k in item["appearance"] for k in
+               ("白", "雪", "云", "玉", "月光", "星砂", "珍珠", "贝壳", "纱", "绒", "玻璃", "银", "雾"))
+    bg_clause = "纯色浅蓝色背景" if pale else "纯白色背景"
 
     raw_dir = OUT_DIR / "_raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
     client = ArkImageClient()
     prompt = (
         f"单个游戏道具图标, {item['appearance']}, 居中, 手绘童话插画风, 暖色调, "
-        "纯白色背景, 无阴影, 无文字, 无边框"
+        f"{bg_clause}, 无阴影, 无发光无光晕, 无文字, 无边框"
     )
     url = client.generate_image(prompt, size="2048x2048")  # 该端点只认 2048x2048 (1024 实测 400)
     raw = raw_dir / f"{item['id']}.jpg"
     download(url, raw)
-    img = cutout_white_bg(Image.open(raw))
+    img = cutout_dominant_bg(Image.open(raw))
     bbox = img.getchannel("A").getbbox()
     if bbox:
         img = img.crop(bbox)
@@ -72,15 +81,20 @@ def generate_live(item: dict, path: Path) -> None:
     canvas.paste(img, ((side - img.width) // 2, (side - img.height) // 2), img)
     canvas.save(path)
     (raw_dir / f"{item['id']}.prompt.json").write_text(
-        _json.dumps({"item": item["id"], "prompt": prompt}, ensure_ascii=False), encoding="utf-8")
-    print(f"[item-image] 实跑生成 {item['id']}")
+        _json.dumps({"item": item["id"], "prompt": prompt, "pale": pale}, ensure_ascii=False),
+        encoding="utf-8")
+    print(f"[item-image] 实跑生成 {item['id']}{' (浅蓝底)' if pale else ''}", flush=True)
 
 
 def main() -> None:
     live = "--live" in sys.argv
     force = "--force" in sys.argv
+    pale_only = "--pale-only" in sys.argv  # 只重跑白色系物品 (浅蓝底修复)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for item in catalog.ITEMS.values():
+        if pale_only and not any(k in item["appearance"] for k in
+                                 ("白", "雪", "云", "玉", "月光", "星砂", "珍珠", "贝壳", "纱", "绒", "玻璃", "银", "雾")):
+            continue
         path = OUT_DIR / f"{item['id']}.png"
         if path.exists() and not force:
             continue  # 幂等: 已有图(如实跑产物)不覆盖; --force 可重跑覆盖占位图
