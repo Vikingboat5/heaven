@@ -29,8 +29,8 @@ _PETS_ROOT = Path(__file__).resolve().parents[3] / "static" / "pets"
 # 素材库: 复用模式的形象来源(现有已验收宠物的帧序列副本)
 _LIBRARY_DIR = _PETS_ROOT / "_library"
 
-# 后台生成的动作集: idle 待机 + wave 招手(回归打招呼用)
-BIRTH_ACTIONS = ("idle", "wave")
+# 后台生成的动作集: idle 待机 + wave 招手 + 生活动作三件套 (H6: stretch/groom/doze)
+BIRTH_ACTIONS = ("idle", "wave", "stretch", "groom", "doze")
 
 _IP_SYSTEM = (
     "把用户提到的角色名转译为不超过30字的外观特征描述(毛色/体型/标志性元素)。"

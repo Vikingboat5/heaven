@@ -55,7 +55,7 @@ def test_sprite_task_success(db, monkeypatch):
     assert pet.sprite_status == "ready"
     assert pet.sprite_style == "pixel"
     assert called["style"] == "pixel"
-    assert called["actions"] == ("idle", "wave")
+    assert called["actions"] == ("idle", "wave", "stretch", "groom", "doze")
     assert "翠绿" in called["appearance"]          # 快捷色系映射
     assert "闪电形尾巴" in called["appearance"]    # IP 转译注入
 

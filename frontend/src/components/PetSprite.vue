@@ -62,6 +62,28 @@ function play(actionName: string) {
   }, meta.frame_ms)
 }
 
+/** 单次播放某动作后回 idle (H6 生活动作编排用); 动作缺失则静默跳过 */
+function playOnce(actionName: string) {
+  const meta = manifest.value?.actions[actionName]
+  if (!meta || actionName === 'idle') return
+  stop()
+  tick = 0
+  currentSrc.value = frameUrl(actionName, meta.sequence[0])
+  timer = setInterval(() => {
+    tick++
+    if (tick >= meta.sequence.length) {
+      play('idle')
+      return
+    }
+    currentSrc.value = frameUrl(actionName, meta.sequence[tick])
+  }, meta.frame_ms)
+}
+
+/** 当前 manifest 实际可用的动作 (生活动作可能因 QC 失败被跳过) */
+function availableActions(): string[] {
+  return Object.keys(manifest.value?.actions ?? {})
+}
+
 onMounted(async () => {
   try {
     const resp = await fetch(`/static/pets/${props.petId}/manifest.json`, { cache: 'no-cache' })
@@ -83,7 +105,7 @@ onMounted(async () => {
 watch(() => props.action, (a) => { if (manifest.value) play(a) })
 onBeforeUnmount(stop)
 
-defineExpose({ play })
+defineExpose({ play, playOnce, availableActions })
 </script>
 
 <template>

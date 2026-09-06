@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   api,
@@ -158,6 +158,31 @@ onMounted(async () => {
   if (phase.value === 'pet') await checkReturn()
   if (pet.value?.away) await loadAwayLoadout()
   if (spritePending.value) pollSprite()
+  scheduleAmbient()
+})
+
+/* ---- H6: 生活动作随机编排 (待机为主, 每 18-40s 随机做一个生活动作) ---- */
+const AMBIENT_ACTIONS = ['stretch', 'groom', 'doze']
+const spriteRef = ref<InstanceType<typeof PetSprite> | null>(null)
+let ambientTimer: ReturnType<typeof setTimeout> | null = null
+
+function scheduleAmbient() {
+  if (ambientTimer) clearTimeout(ambientTimer)
+  const delay = 18000 + Math.random() * 22000
+  ambientTimer = setTimeout(() => {
+    // 仅在家、形象就绪、页面可见时播放; 动作以 manifest 实际可用为准 (QC 失败的动作会被管线跳过)
+    if (pet.value && !pet.value.away && spriteReady.value && !document.hidden) {
+      const available = AMBIENT_ACTIONS.filter((a) => spriteRef.value?.availableActions().includes(a))
+      if (available.length > 0) {
+        spriteRef.value?.playOnce(available[Math.floor(Math.random() * available.length)])
+      }
+    }
+    scheduleAmbient()
+  }, delay)
+}
+
+onBeforeUnmount(() => {
+  if (ambientTimer) clearTimeout(ambientTimer)
 })
 
 /** H2: 预计回来时间 (旅行中展示) */
@@ -620,7 +645,7 @@ function itemNameById(itemId: string): string {
 
     <!-- 生成形象层: 帧动画宠物 (巢穴位置); H2: 旅行中不显示 (空房) -->
     <div v-if="phase === 'pet' && spriteReady && pet && !pet.away" class="sprite-layer">
-      <PetSprite :pet-id="pet.id" action="idle" />
+      <PetSprite ref="spriteRef" :pet-id="pet.id" action="idle" />
     </div>
 
     <!-- H3: 归来便签信 —— 钉在树上的纸便签 (规范 v1.1: 功能物=场景实物), 点击才拆开 -->

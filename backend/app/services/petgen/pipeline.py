@@ -60,7 +60,8 @@ def build_prompt(action: ActionTemplate, appearance: str, style: StyleProfile) -
         f"同一角色的动画渐变序列, 按从左到右、从上到下顺序: "
         f"{action.frame_order_clause}. "
         f"角色是{appearance}, {style.prompt_style}. "
-        f"{n}个关键帧大小一致、姿势只有细微差别、风格完全一致、间距均匀互不重叠, "
+        f"{n}个关键帧大小一致、角色完整位于各自格内且四周留有空白边距(不可超出格子)、"
+        f"姿势只有细微差别、风格完全一致、间距均匀互不重叠, "
         f"{WHITE_BG_CLAUSE}"
     )
 
@@ -144,13 +145,16 @@ def _cutout_cell(cell: Image.Image, profile: StyleProfile) -> np.ndarray:
 
 
 def _normalize(rgba: np.ndarray, profile: StyleProfile) -> Image.Image:
-    """对齐: alpha 包围盒裁剪 → 等比缩放 → 底部居中锚定画布"""
+    """对齐: alpha 包围盒裁剪 → 等比缩放 → 底部居中锚定画布
+
+    缩放取高/宽两个方向的最小比 (2026-09 doze 实测: 趴睡姿势宽大于高,
+    只按高缩放会横向溢出裁掉耳朵/头)。"""
     im = Image.fromarray(rgba, "RGBA")
     bbox = im.getchannel("A").getbbox()
     if not bbox:
         raise PetGenError("切帧后前景为空")
     crop = im.crop(bbox)
-    ratio = (CANVAS * 0.80) / crop.height
+    ratio = min((CANVAS * 0.80) / crop.height, (CANVAS * 0.86) / crop.width)
     w, h = max(1, int(crop.width * ratio)), max(1, int(crop.height * ratio))
     resample = Image.NEAREST if profile.resize_nearest else Image.LANCZOS
     crop = crop.resize((w, h), resample)
@@ -161,6 +165,18 @@ def _normalize(rgba: np.ndarray, profile: StyleProfile) -> Image.Image:
     fa = ndimage.binary_fill_holes(ca[..., 3] > 0)
     ca[..., 3] = (fa * 255).astype(np.uint8)
     return Image.fromarray(ca, "RGBA")
+
+
+def _has_drawn_border(cell: Image.Image) -> bool:
+    """QC 辅助: 检测模型手绘的格线边框 (生活动作表实测复发, 2026-09)。
+
+    判定: 单元格四边 6px 条带的暗色像素占比全部 > 25%
+    (角色贴边只会压一两条边, 完整矩形框才会四边全占)。
+    """
+    lum = np.asarray(cell).astype(np.int16).min(axis=2)
+    s = 6
+    strips = (lum[:s, :], lum[-s:, :], lum[:, :s], lum[:, -s:])
+    return all(float((strip < 150).mean()) > 0.25 for strip in strips)
 
 
 def count_holes(frame: Image.Image) -> int:
@@ -182,14 +198,17 @@ def process_sheet(raw_path: Path, action: ActionTemplate,
 
     frames: list[Image.Image] = []
     areas: list[int] = []
+    border_cells: list[int] = []
     for row in range(action.grid_rows):
         for col in range(action.grid_cols):
             cell = img.crop((col * cw, row * ch, (col + 1) * cw, (row + 1) * ch))
+            if _has_drawn_border(cell):
+                border_cells.append(row * action.grid_cols + col)
             rgba = _cutout_cell(cell, profile)
             areas.append(int((rgba[..., 3] > 0).sum()))
             frames.append(_normalize(rgba, profile))
 
-    # QC: 帧数 + 面积离群(AI 瑕疵帧如多尾巴会面积异常) + 空洞
+    # QC: 帧数 + 面积离群(AI 瑕疵帧如多尾巴会面积异常) + 空洞 + 手绘格线边框
     median = float(np.median(areas))
     outliers = [i for i, a in enumerate(areas)
                 if not (median / profile.max_area_outlier <= a <= median * profile.max_area_outlier)]
@@ -201,8 +220,9 @@ def process_sheet(raw_path: Path, action: ActionTemplate,
         "areas": areas,
         "area_outliers": outliers,
         "holes": holes,
+        "border_cells": border_cells,
         "passed": (len(frames) == action.frame_count
-                   and not outliers and not bad_holes),
+                   and not outliers and not bad_holes and not border_cells),
     }
     return frames, qc
 
@@ -239,6 +259,7 @@ class PetForge:
             action = ACTION_TEMPLATES[action_key]
             prompt = build_prompt(action, appearance, profile)
             last_qc: dict | None = None
+            frames: list[Image.Image] | None = None
             for attempt in range(GEN_RETRY + 1):
                 url = self.client.generate_image(prompt)
                 raw_path = pet_dir / f"raw_sheet_{action_key}.jpg"
@@ -251,22 +272,26 @@ class PetForge:
                         prompt_version=profile.prompt_version,
                         model=self.client.model)), ensure_ascii=False, indent=2),
                     encoding="utf-8")
-                frames, qc = process_sheet(raw_path, action, profile)
-                last_qc = qc
-                if qc["passed"]:
+                frames, last_qc = process_sheet(raw_path, action, profile)
+                if last_qc["passed"]:
                     break
-            else:
-                raise PetGenError(
-                    f"动作 {action_key} 质检连续失败: {last_qc}")
+            # H6: 非 idle 动作 QC 连败 → 只跳过该动作(记 manifest), 不影响其余动作
+            if not (last_qc and last_qc["passed"]):
+                if action_key == "idle":
+                    raise PetGenError(f"动作 {action_key} 质检连续失败: {last_qc}")
+                manifest["qc"][action_key] = {
+                    "passed": False, "reason": "qc_failed", "detail": last_qc,
+                }
+                continue
 
-            for i, frame in enumerate(frames):
+            for i, frame in enumerate(frames or []):
                 frame.save(pet_dir / "frames" / f"{action_key}_{i}.png")
             manifest["actions"][action_key] = {
                 "frames": action.frame_count,
                 "sequence": list(action.sequence),
                 "frame_ms": action.frame_ms,
             }
-            manifest["qc"][action_key] = qc
+            manifest["qc"][action_key] = last_qc
 
         (pet_dir / "manifest.json").write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
