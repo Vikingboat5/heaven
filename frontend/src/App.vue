@@ -93,7 +93,7 @@ nav {
   border-radius: 999px;
   color: rgba(253, 240, 220, 0.7);
   text-decoration: none;
-  font-size: 13px;
+  font-size: var(--fs-md);
   letter-spacing: 1px;
   transition: all 0.25s;
   border: none;

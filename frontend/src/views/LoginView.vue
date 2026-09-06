@@ -98,20 +98,20 @@ async function submit() {
 }
 .eyebrow {
   margin: 0 0 10px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 5px;
   color: rgba(255, 233, 200, 0.55);
 }
 .title {
   margin: 0;
-  font-size: 26px;
+  font-size: var(--fs-display);
   font-weight: 600;
   letter-spacing: 4px;
   color: #fdf6ec;
 }
 .subtitle {
   margin: 10px 0 24px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: rgba(253, 240, 220, 0.55);
 }
 .form {
@@ -124,7 +124,7 @@ async function submit() {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
   outline: none;
-  font-size: 15px;
+  font-size: var(--fs-lg);
   background: rgba(255, 255, 255, 0.08);
   color: var(--color-text);
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -143,7 +143,7 @@ async function submit() {
   border-radius: 14px;
   background: linear-gradient(135deg, #f2a56e, #e77fa2);
   color: #fff;
-  font-size: 15px;
+  font-size: var(--fs-lg);
   font-weight: 600;
   letter-spacing: 2px;
   cursor: pointer;
@@ -155,12 +155,12 @@ async function submit() {
 }
 .error {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: #ff9d9d;
 }
 .switch {
   margin: 20px 0 0;
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: rgba(253, 240, 220, 0.5);
 }
 .switch a {

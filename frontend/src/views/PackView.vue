@@ -225,7 +225,7 @@ async function leave() {
 }
 .sub {
   margin: 8px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   letter-spacing: 1px;
   color: var(--color-text-faint);
 }
@@ -236,7 +236,7 @@ async function leave() {
   border: none;
   background: none;
   color: var(--color-text-faint);
-  font-size: 14px;
+  font-size: var(--fs-lg);
   cursor: pointer;
 }
 
@@ -244,9 +244,9 @@ async function leave() {
   position: relative;
   text-align: center;
   color: var(--color-text-faint);
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
-.state-text.small { font-size: 11px; margin-top: 8px; }
+.state-text.small { font-size: var(--fs-xs); margin-top: 8px; }
 
 /* B1: 槽位 */
 .slots {
@@ -280,18 +280,18 @@ async function leave() {
   border-radius: 8px;
 }
 .slot-empty {
-  font-size: 22px;
+  font-size: var(--fs-xxl);
   color: var(--color-text-faint);
   line-height: 44px;
 }
-.slot-item-name { font-size: 11px; }
+.slot-item-name { font-size: var(--fs-xs); }
 .slot-label {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   letter-spacing: 2px;
   color: var(--color-gold);
 }
 .slot-hint {
-  font-size: 10px;
+  font-size: var(--fs-micro);
   color: var(--color-text-faint);
   text-align: center;
 }
@@ -299,7 +299,7 @@ async function leave() {
 .notice {
   position: relative;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: #ffb3b3;
 }
 
@@ -307,7 +307,7 @@ async function leave() {
 .grid-title {
   position: relative;
   margin: 0 0 10px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   letter-spacing: 3px;
   color: var(--color-text-dim);
 }
@@ -338,9 +338,9 @@ async function leave() {
   height: 40px;
   border-radius: 8px;
 }
-.cell-name { font-size: 11px; }
-.cell-meta { font-size: 9px; color: var(--color-text-faint); }
-.cell-rarity { font-size: 9px; color: var(--color-text-faint); }
+.cell-name { font-size: var(--fs-xs); }
+.cell-meta { font-size: var(--fs-micro); color: var(--color-text-faint); }
+.cell-rarity { font-size: var(--fs-micro); color: var(--color-text-faint); }
 .cell.rarity-rare .cell-rarity { color: #8ab4ff; }
 .cell.rarity-epic .cell-rarity { color: #f7c964; }
 
@@ -348,7 +348,7 @@ async function leave() {
   display: block;
   width: 100%;
   padding: 13px 0;
-  font-size: var(--fs-xl);
+  font-size: var(--fs-lg);   /* 按钮文字统一 fs-lg (规范 §2) */
 }
 
 /* B5: 旅行中 */
@@ -357,7 +357,7 @@ async function leave() {
   text-align: center;
 }
 .away-title {
-  font-size: 18px;
+  font-size: var(--fs-xl);
   color: var(--color-text);
   margin: 20px 0 4px;
 }

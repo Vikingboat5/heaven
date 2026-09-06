@@ -30,12 +30,14 @@
   /* ---- 字体 (规范 §2) ---- */
   --font-display: 'Smiley Sans Oblique', 'Yuanti SC', 'YouYuan', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   --font-body: 'Yuanti SC', 'YouYuan', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --fs-micro: 10px;
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-md: 13px;
   --fs-lg: 14px;
   --fs-xl: 17px;
   --fs-xxl: 22px;
+  --fs-display: 28px;
 
   /* ---- 动效 (规范 §4) ---- */
   --motion-fast: 150ms;

@@ -920,7 +920,7 @@ function itemNameById(itemId: string): string {
 .title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: var(--fs-display);
   font-weight: 600;
   letter-spacing: 8px;
   text-indent: 8px; /* 视觉居中补偿字间距 */
@@ -955,19 +955,19 @@ function itemNameById(itemId: string): string {
   justify-content: space-between;
 }
 .panel-label {
-  font-size: 13px;
+  font-size: var(--fs-md);
   letter-spacing: 2px;
   color: rgba(255, 240, 220, 0.65);
 }
 .panel-value {
-  font-size: 24px;
+  font-size: var(--fs-xxl);
   font-weight: 700;
   color: #f7c98a;
   font-variant-numeric: tabular-nums;
 }
 .panel-value i {
   font-style: normal;
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 400;
   color: rgba(255, 240, 220, 0.45);
   margin-left: 2px;
@@ -988,7 +988,7 @@ function itemNameById(itemId: string): string {
 }
 .hint {
   margin: 10px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: rgba(255, 240, 220, 0.45);
   letter-spacing: 1px;
 }
@@ -1006,7 +1006,7 @@ function itemNameById(itemId: string): string {
   border-radius: 14px;
   background: linear-gradient(135deg, #f2a56e, #e77fa2);
   color: #fff;
-  font-size: 15px;
+  font-size: var(--fs-lg);
   font-weight: 600;
   letter-spacing: 2px;
   text-decoration: none;
@@ -1027,7 +1027,7 @@ function itemNameById(itemId: string): string {
 /* 孵化就绪 */
 .ready-title {
   margin: 0 0 12px;
-  font-size: 15px;
+  font-size: var(--fs-lg);
   font-weight: 600;
   letter-spacing: 1px;
   color: #f7c98a;
@@ -1039,7 +1039,7 @@ function itemNameById(itemId: string): string {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
   outline: none;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   background: rgba(255, 255, 255, 0.08);
   color: var(--color-text);
   font-family: inherit;
@@ -1092,7 +1092,7 @@ function itemNameById(itemId: string): string {
   background: rgba(22, 12, 44, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: #fdf6ec;
-  font-size: 13px;
+  font-size: var(--fs-md);
   letter-spacing: 1px;
   white-space: nowrap;
 }
@@ -1142,7 +1142,7 @@ function itemNameById(itemId: string): string {
   left: 16px;
   bottom: 16px;
   padding: 14px 34px 16px;
-  font-size: var(--fs-xl);
+  font-size: var(--fs-lg);   /* 入口字号统一 (规范 §2), 主从靠木牌大小区分 */
   rotate: -1.5deg;
 }
 .wood-primary .wood-icon-img {
@@ -1155,7 +1155,7 @@ function itemNameById(itemId: string): string {
   right: 16px;
   bottom: 16px;
   padding: 16px 26px 16px;
-  font-size: var(--fs-md);
+  font-size: var(--fs-lg);   /* 入口字号统一 (规范 §2) */
   rotate: 1.2deg;
 }
 .wood-side .wood-icon-img {
@@ -1316,7 +1316,7 @@ function itemNameById(itemId: string): string {
   text-align: center;
 }
 .letter-item-rarity {
-  font-size: 10px;
+  font-size: var(--fs-micro);
   color: #8a7a5f;
 }
 .letter-item.rarity-rare .letter-item-rarity { color: #4a6fa5; }
@@ -1327,7 +1327,7 @@ function itemNameById(itemId: string): string {
   right: -6px;
   padding: 1px 6px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: var(--fs-micro);
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #ff8a5c, #ff5c8a);

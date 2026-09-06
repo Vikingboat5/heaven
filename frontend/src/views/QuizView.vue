@@ -163,15 +163,15 @@ async function submit() {
   border-radius: 20px; padding: 32px 28px;
   backdrop-filter: blur(6px);
 }
-.progress { color: #b79fd8; font-size: 12px; margin: 0 0 6px; letter-spacing: 2px; }
+.progress { color: #b79fd8; font-size: var(--fs-sm); margin: 0 0 6px; letter-spacing: 2px; }
 .dots { display: flex; gap: 6px; margin-bottom: 18px; }
 .dot { width: 18px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.12); }
 .dot.on { background: linear-gradient(90deg, #f2b06e, #e87a9a); }
-.title { color: #ffe9d0; font-size: 20px; font-weight: 600; margin: 0 0 22px; line-height: 1.5; }
+.title { color: #ffe9d0; font-size: var(--fs-xxl); font-weight: 600; margin: 0 0 22px; line-height: 1.5; }
 .options { display: flex; flex-direction: column; gap: 10px; }
 .option {
   padding: 13px 16px; border-radius: 12px; text-align: left;
-  background: rgba(255, 255, 255, .06); color: #f0e6ff; font-size: 15px;
+  background: rgba(255, 255, 255, .06); color: #f0e6ff; font-size: var(--fs-lg);
   border: 1px solid rgba(255, 255, 255, .1); cursor: pointer;
   transition: all .18s;
 }
@@ -184,21 +184,21 @@ async function submit() {
 .text-input {
   flex: 1; padding: 12px 14px; border-radius: 12px;
   background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
-  color: #ffe9d0; font-size: 14px; outline: none;
+  color: #ffe9d0; font-size: var(--fs-lg); outline: none;
 }
 .text-input:focus { border-color: #f2b06e; }
 .text-input::placeholder { color: rgba(255,233,208,.35); }
 .mini-btn {
   padding: 0 18px; border: none; border-radius: 12px; cursor: pointer;
   background: linear-gradient(90deg, #f2b06e, #e87a9a); color: #2a1040;
-  font-size: 14px; font-weight: 600;
+  font-size: var(--fs-lg); font-weight: 600;
 }
 .mini-btn:disabled { opacity: .35; cursor: default; }
 .skip {
   margin-top: 10px; background: none; border: none; cursor: pointer;
-  color: #b79fd8; font-size: 13px; align-self: center;
+  color: #b79fd8; font-size: var(--fs-md); align-self: center;
 }
 .skip:hover { color: #ffe9d0; }
-.error { color: #ff9a9a; font-size: 13px; margin: 14px 0 0; }
-.loading-text { color: #b79fd8; text-align: center; margin: 14px 0 0; font-size: 14px; }
+.error { color: #ff9a9a; font-size: var(--fs-md); margin: 14px 0 0; }
+.loading-text { color: #b79fd8; text-align: center; margin: 14px 0 0; font-size: var(--fs-lg); }
 </style>

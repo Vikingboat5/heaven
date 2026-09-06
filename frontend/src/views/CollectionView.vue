@@ -247,7 +247,7 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
   border: none;
   background: none;
   color: var(--color-text-faint);
-  font-size: 14px;
+  font-size: var(--fs-lg);
   cursor: pointer;
 }
 
@@ -264,7 +264,7 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.05);
   color: var(--color-text-faint);
-  font-size: 14px;
+  font-size: var(--fs-lg);
   letter-spacing: 3px;
   cursor: pointer;
 }
@@ -274,19 +274,19 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
   border-color: transparent;
 }
 
-.state-text { position: relative; text-align: center; color: var(--color-text-faint); font-size: 13px; }
+.state-text { position: relative; text-align: center; color: var(--color-text-faint); font-size: var(--fs-md); }
 .state-empty { position: relative; text-align: center; margin-top: 60px; }
-.state-title { font-size: 16px; color: var(--color-text-dim); margin: 0 0 8px; }
+.state-title { font-size: var(--fs-xl); color: var(--color-text-dim); margin: 0 0 8px; }
 
 /* C1: 图鉴分组 */
 .pack-group { position: relative; margin-bottom: 22px; }
 .pack-title {
   margin: 0 0 10px;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   letter-spacing: 3px;
   color: var(--color-text);
 }
-.pack-progress { font-size: 11px; color: var(--color-text-faint); margin-left: 8px; }
+.pack-progress { font-size: var(--fs-xs); color: var(--color-text-faint); margin-left: 8px; }
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -312,14 +312,14 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
   filter: grayscale(1) brightness(0.35);
 }
 .cell-img { width: 44px; height: 44px; border-radius: 8px; }
-.cell-name { font-size: 11px; }
+.cell-name { font-size: var(--fs-xs); }
 .new-badge {
   position: absolute;
   top: -6px;
   right: -6px;
   padding: 1px 6px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: var(--fs-micro);
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #ff8a5c, #ff5c8a);
@@ -359,16 +359,16 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
 }
 .log-time {
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   letter-spacing: 1px;
   color: var(--color-text-faint);
 }
-.log-narrative { margin: 0; font-size: 14px; line-height: 1.75; color: var(--color-text); }
+.log-narrative { margin: 0; font-size: var(--fs-lg); line-height: 1.75; color: var(--color-text); }
 .log-rewards { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; }
 .reward-chip {
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: #f7c98a;
   background: rgba(247, 201, 138, 0.12);
   border: 1px solid rgba(247, 201, 138, 0.25);
@@ -382,9 +382,9 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
 .reward-thumb.rarity-rare { border-color: rgba(120, 170, 255, 0.6); }
 .reward-thumb.rarity-epic { border-color: rgba(247, 201, 100, 0.7); }
 .log-detail { margin-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; }
-.log-event { margin: 4px 0; font-size: 12px; color: var(--color-text-dim); line-height: 1.6; }
+.log-event { margin: 4px 0; font-size: var(--fs-sm); color: var(--color-text-dim); line-height: 1.6; }
 .log-event-time { color: var(--color-text-faint); font-variant-numeric: tabular-nums; }
-.log-exchange { margin: 8px 0 0; font-size: 12px; color: #f7c98a; }
+.log-exchange { margin: 8px 0 0; font-size: var(--fs-sm); color: #f7c98a; }
 
 /* C3: 详情弹层 */
 .mask {
@@ -415,20 +415,20 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
 }
 .detail-img.rarity-rare { border-color: rgba(120, 170, 255, 0.7); box-shadow: 0 0 20px rgba(120, 170, 255, 0.35); }
 .detail-img.rarity-epic { border-color: rgba(247, 201, 100, 0.8); box-shadow: 0 0 24px rgba(247, 201, 100, 0.4); }
-.detail-name { margin: 14px 0 4px; font-size: 18px; font-weight: 700; letter-spacing: 2px; color: var(--color-text); }
-.detail-meta { margin: 0 0 10px; font-size: 12px; color: var(--color-text-faint); }
+.detail-name { margin: 14px 0 4px; font-size: var(--fs-xl); font-weight: 700; letter-spacing: 2px; color: var(--color-text); }
+.detail-meta { margin: 0 0 10px; font-size: var(--fs-sm); color: var(--color-text-faint); }
 .rarity-text-rare { color: #8ab4ff; }
 .rarity-text-epic { color: #f7c964; }
-.detail-desc { margin: 0 0 10px; font-size: 13px; line-height: 1.7; color: var(--color-text); }
-.detail-source { margin: 0 0 6px; font-size: 11px; color: var(--color-text-faint); }
-.detail-first { margin: 0 0 6px; font-size: 12px; color: #f7c98a; }
+.detail-desc { margin: 0 0 10px; font-size: var(--fs-md); line-height: 1.7; color: var(--color-text); }
+.detail-source { margin: 0 0 6px; font-size: var(--fs-xs); color: var(--color-text-faint); }
+.detail-first { margin: 0 0 6px; font-size: var(--fs-sm); color: #f7c98a; }
 .cta {
   width: 100%;
   margin-top: 14px;
   padding: 12px;
   border: none;
   border-radius: 999px;
-  font-size: 15px;
+  font-size: var(--fs-lg);
   letter-spacing: 4px;
   color: #3a1f10;
   background: linear-gradient(135deg, #ffd9a0, #f2b06e);
