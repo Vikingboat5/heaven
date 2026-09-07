@@ -3,7 +3,7 @@
  * 日记页 (spec §11.3 拆分为独立页, 2026-09-06): 旅行日记列表(时间倒序)
  * C2 日记列表; C5 收获明细含交换留痕; H8 首到某地的明信片展示
  */
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ApiError, itemImageUrl, type AdventureLogOut, type CatalogItemOut } from '../api/client'
 
@@ -14,6 +14,11 @@ const items = ref<CatalogItemOut[]>([])
 const expandedLog = ref<number | null>(null)
 const loading = ref(true)
 const error = ref('')
+
+/** 明信片墙: 所有已生成的打卡照 (新→旧) */
+const postcards = computed(() =>
+  logs.value.filter((l) => l.rewards?.postcard)
+)
 
 onMounted(async () => {
   try {
@@ -65,7 +70,19 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
       <p class="state-text">离开一段时间再回来，小家伙就会出门探险啦</p>
     </div>
 
-    <div v-else class="timeline stagger">
+    <template v-else>
+      <!-- 明信片墙: 全部打卡照横滑 (相册位) -->
+      <section v-if="postcards.length > 0" class="wall">
+        <p class="wall-title">明信片墙</p>
+        <div class="wall-scroll">
+          <figure v-for="l in postcards" :key="l.id" class="wall-card">
+            <img :src="l.rewards!.postcard!" :alt="`来自${l.dest}的明信片`" />
+            <figcaption>{{ l.dest || '远方' }}</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <div class="timeline stagger">
       <article v-for="log in logs" :key="log.id" class="log-card" @click="expandedLog = expandedLog === log.id ? null : log.id">
         <div class="log-dot"></div>
         <p class="log-time">{{ fmtTime(log.started_at) }} · {{ log.dest || '远方' }}</p>
@@ -101,7 +118,8 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
           <p v-else-if="log.rewards?.gift_returned" class="log-exchange">把伴手礼又抱回来了（有点害羞）</p>
         </div>
       </article>
-    </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -151,6 +169,45 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
 .state-text { text-align: center; color: var(--color-text-faint); font-size: var(--fs-md); }
 .state-empty { text-align: center; margin-top: 60px; }
 .state-title { font-size: var(--fs-xl); color: var(--color-text-dim); margin: 0 0 8px; }
+
+/* 明信片墙 (相册位): 横滑浏览全部打卡照 */
+.wall { margin-bottom: 18px; }
+.wall-title {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  letter-spacing: 3px;
+  color: var(--color-gold);
+}
+.wall-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+.wall-card {
+  flex: none;
+  width: 180px;
+  margin: 0;
+  background: #f7ecd4;
+  border-radius: 10px;
+  padding: 6px 6px 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  rotate: -1deg;
+}
+.wall-card:nth-child(even) { rotate: 1.2deg; }
+.wall-card img {
+  width: 100%;
+  border-radius: 6px;
+  display: block;
+}
+.wall-card figcaption {
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: #4a3320;
+  margin-top: 5px;
+  letter-spacing: 1px;
+}
 
 .timeline { display: flex; flex-direction: column; gap: 14px; }
 .log-card {
