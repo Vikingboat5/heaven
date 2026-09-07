@@ -587,8 +587,8 @@ function itemNameById(itemId: string): string {
 
     <!-- ===== 宠物阶段: 环形贴边 UI (规范 v1.1 §3.2) ===== -->
     <template v-else-if="pet">
-      <!-- 顶左: 宠物信息木牌 (头像 + 名字/标签, 学农场左上信息区) -->
-      <div class="pet-plaque">
+      <!-- 顶左: 宠物信息木牌 (H7: 点击进宠物详情页) -->
+      <router-link to="/pet" class="pet-plaque">
         <img class="plaque-avatar" :src="`/static/pets/${pet.id}/frames/idle_0.png`" :alt="pet.name" />
         <div class="plaque-info">
           <p class="pet-name">{{ pet.name }}</p>
@@ -601,7 +601,7 @@ function itemNameById(itemId: string): string {
             天赋：{{ pet.talents.map((t) => t.name).join('、') }} ｜ 技能：{{ pet.skills.map((s) => s.name).join('、') }}
           </p>
         </div>
-      </div>
+      </router-link>
 
       <!-- 旅行中: 底部纸张细横幅 (H2), 不占主动作位 -->
       <div v-if="pet.away" class="away-banner">
@@ -625,6 +625,11 @@ function itemNameById(itemId: string): string {
           <span>打包行李</span>
         </router-link>
       </template>
+      <!-- 右下: 日记本 (场景实物直放, 无底板) -->
+      <router-link to="/diary" class="wood-btn scene-entry wood-diary">
+        <img class="wood-icon-img" :src="'/static/ui/icon_book.png'" alt="" />
+        <span>日记</span>
+      </router-link>
       <!-- 右下: 收藏篮 (场景实物直放, 无底板) -->
       <router-link to="/collection" class="wood-btn scene-entry wood-side">
         <img class="wood-icon-img" :src="'/static/ui/icon_basket.png'" alt="" />
@@ -636,6 +641,14 @@ function itemNameById(itemId: string): string {
     <div v-if="letter && letterOpen" class="mask" @click.self="closeLetter">
       <div class="letter-card">
         <p class="letter-title">✉️ {{ pet?.name }}的信 · {{ letter.dest || '远方' }}</p>
+        <!-- H8: 首到某地的明信片打卡照 -->
+        <img
+          v-if="letter.rewards?.postcard"
+          :src="letter.rewards.postcard"
+          :alt="`来自${letter.dest}的明信片`"
+          class="letter-postcard"
+        />
+        <p v-else-if="letter.rewards?.postcard_pending" class="postcard-pending">📮 明信片还在路上，晚点去日记里看</p>
         <p class="letter-text">{{ letter.narrative }}</p>
         <div v-if="letter.rewards?.items?.length" class="letter-items stagger">
           <div
@@ -1110,6 +1123,8 @@ function itemNameById(itemId: string): string {
   align-items: center;
   gap: 10px;
   padding: 10px 20px 12px 14px;
+  text-decoration: none;
+  cursor: pointer;
   background: url('/static/ui/wood_plaque.png') center / 100% 100% no-repeat;
   filter: drop-shadow(0 6px 14px rgba(10, 6, 20, 0.45));
   rotate: -1.2deg;
@@ -1157,6 +1172,18 @@ function itemNameById(itemId: string): string {
 .wood-side .wood-icon-img {
   width: 46px;
   height: 46px;
+}
+/* 日记本: 右下偏中 (收藏左边) */
+.wood-diary {
+  position: absolute;
+  z-index: 2;
+  right: 96px;
+  bottom: 18px;
+  rotate: -2deg;
+}
+.wood-diary .wood-icon-img {
+  width: 42px;
+  height: 42px;
 }
 /* 场景入口: 实物直放无底板 (规范 v1.2 §5: 主页入口是场景里的实物, 不是贴上去的板子) */
 .scene-entry {
@@ -1363,5 +1390,21 @@ function itemNameById(itemId: string): string {
   width: 100%;
   margin-top: 18px;
   padding: 12px 0;
+}
+/* H8: 明信片 (信纸上的照片) */
+.letter-postcard {
+  display: block;
+  width: 82%;
+  margin: 0 auto 14px;
+  border: 3px solid #fff;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(60, 40, 20, 0.3);
+  rotate: -1deg;
+}
+.postcard-pending {
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: #a08a6a;
+  margin: 0 0 10px;
 }
 </style>

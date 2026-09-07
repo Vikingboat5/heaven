@@ -96,6 +96,8 @@ export interface AdventureLogOut {
     consumed?: string[]
     exchanged?: { gave: string; got: string; with: string } | null
     gift_returned?: boolean
+    postcard?: string | null
+    postcard_pending?: boolean
   }
   dest?: string
   flavor?: string
@@ -173,6 +175,10 @@ export const api = {
   hatchEgg: (name?: string) =>
     request<PetOut>('/api/eggs/hatch', { method: 'POST', body: JSON.stringify({ name: name || null }) }),
   getMyPet: () => request<PetOut | null>('/api/pets/me'),
+  // H7: 宠物详情页操作
+  renamePet: (name: string) =>
+    request<{ ok: boolean; name: string }>('/api/pets/rename', { method: 'POST', body: JSON.stringify({ name }) }),
+  regenSprite: () => request<{ ok: boolean; detail?: string }>('/api/pets/regen_sprite', { method: 'POST' }),
   getQuiz: () => request<QuizQuestion[]>('/api/quiz'),
   submitQuiz: (answers: Record<string, string>) =>
     request<EggOut>('/api/eggs/quiz', { method: 'POST', body: JSON.stringify({ answers }) }),

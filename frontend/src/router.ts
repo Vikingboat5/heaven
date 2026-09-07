@@ -4,6 +4,8 @@ import LoginView from './views/LoginView.vue'
 import QuizView from './views/QuizView.vue'
 import PackView from './views/PackView.vue'
 import CollectionView from './views/CollectionView.vue'
+import DiaryView from './views/DiaryView.vue'
+import PetView from './views/PetView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -14,8 +16,12 @@ export const router = createRouter({
     { path: '/chat', redirect: '/' },
     { path: '/pack', name: 'pack', component: PackView },
     { path: '/collection', name: 'collection', component: CollectionView },
-    // v1.2: 旅行日记并入收藏页, 旧链接重定向
-    { path: '/adventure', redirect: '/collection' },
+    // 2026-09-06: 日记拆分为独立页 (原收藏页标签)
+    { path: '/diary', name: 'diary', component: DiaryView },
+    // H7: 宠物详情页 (改名/重新生成形象/退出)
+    { path: '/pet', name: 'pet', component: PetView },
+    // v1.2: 旅行日记并入收藏页, 旧链接重定向 → 2026-09 改指独立日记页
+    { path: '/adventure', redirect: '/diary' },
     { path: '/login', name: 'login', component: LoginView },
   ],
 })

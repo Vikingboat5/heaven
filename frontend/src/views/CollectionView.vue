@@ -1,11 +1,9 @@
 <script setup lang="ts">
 /**
- * 收藏页 (spec §11.3): 图鉴(默认) + 日记 两个标签
+ * 收藏页 (spec §11.3): 仅图鉴 (日记已拆分为独立页, 2026-09-06)
  * C1 图鉴: 按种子包分组格子矩阵, 未获得=剪影, 每组进度 n/N
- * C2 日记: 旅行日记列表(时间倒序)
  * C3 物品详情: 大图/品级/属性/描述/来源/数量/首发现; 打开即清 NEW!
  * C4 NEW! 角标, 点开详情后消除
- * C5 日记收获明细含交换留痕 "用 X 换到了 Y"
  */
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -16,28 +14,22 @@ import {
   itemImageUrl,
   PACK_LABELS,
   RARITY_LABELS,
-  type AdventureLogOut,
   type CatalogItemOut,
 } from '../api/client'
 
 const router = useRouter()
 const myUsername = localStorage.getItem('pp_username') ?? ''
 
-type Tab = 'catalog' | 'diary'
-const tab = ref<Tab>('catalog')
 const loading = ref(true)
 const error = ref('')
 
 const items = ref<CatalogItemOut[]>([])
-const logs = ref<AdventureLogOut[]>([])
 const detail = ref<CatalogItemOut | null>(null)
-const expandedLog = ref<number | null>(null)
 
 onMounted(async () => {
   try {
-    const [c, l] = await Promise.all([api.getCatalog(), api.getAdventureLogs()])
+    const c = await api.getCatalog()
     items.value = c.items
-    logs.value = l.logs
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : '加载失败'
   } finally {
@@ -78,6 +70,7 @@ async function openDetail(it: CatalogItemOut) {
   }
 }
 
+/** 详情弹层的获得时间格式化 */
 function fmtTime(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(iso)
@@ -86,14 +79,6 @@ function fmtTime(iso: string | null): string {
   const hh = String(d.getHours()).padStart(2, '0')
   const mi = String(d.getMinutes()).padStart(2, '0')
   return `${mm}-${dd} ${hh}:${mi}`
-}
-
-/** 日记条目里按 id 取物品名 (消耗/交换的 id 可能不在收获列表) */
-function logItemName(log: AdventureLogOut, itemId: string): string {
-  const inRewards = (log.rewards?.items ?? []).find((i) => i.item_id === itemId)
-  if (inRewards) return inRewards.name
-  const inCatalog = items.value.find((i) => i.item_id === itemId)
-  return inCatalog?.name ?? itemId
 }
 </script>
 
@@ -108,17 +93,11 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
       <h2>收藏</h2>
     </header>
 
-    <!-- 标签切换: C1 图鉴默认 -->
-    <div class="tabs">
-      <button class="tab" :class="{ active: tab === 'catalog' }" @click="tab = 'catalog'">图鉴</button>
-      <button class="tab" :class="{ active: tab === 'diary' }" @click="tab = 'diary'">日记</button>
-    </div>
-
     <p v-if="loading" class="state-text">加载中…</p>
     <p v-else-if="error" class="state-text">{{ error }}</p>
 
-    <!-- ===== 图鉴标签 (C1/C3/C4) ===== -->
-    <template v-else-if="tab === 'catalog'">
+    <!-- ===== 图鉴 (C1/C3/C4) ===== -->
+    <template v-else>
       <section v-for="g in packs" :key="g.pack" class="pack-group">
         <p class="pack-title">{{ g.label }} <span class="pack-progress">{{ packProgress(g) }}</span></p>
         <div class="grid stagger">
@@ -135,43 +114,6 @@ function logItemName(log: AdventureLogOut, itemId: string): string {
           </button>
         </div>
       </section>
-    </template>
-
-    <!-- ===== 日记标签 (C2/C5) ===== -->
-    <template v-else>
-      <div v-if="logs.length === 0" class="state-empty">
-        <p class="state-title">还没有旅行日记</p>
-        <p class="state-text">离开一段时间再回来，小家伙就会出门探险啦</p>
-      </div>
-      <div v-else class="timeline stagger">
-        <article v-for="log in logs" :key="log.id" class="log-card" @click="expandedLog = expandedLog === log.id ? null : log.id">
-          <div class="log-dot"></div>
-          <p class="log-time">{{ fmtTime(log.started_at) }} · {{ log.dest || '远方' }}</p>
-          <p class="log-narrative">{{ log.narrative }}</p>
-          <div class="log-rewards">
-            <span v-if="log.rewards?.exp" class="reward-chip">经验 +{{ log.rewards.exp }}</span>
-            <img
-              v-for="(it, idx) in log.rewards?.items ?? []"
-              :key="idx"
-              :src="itemImageUrl(it.image)"
-              :alt="it.name"
-              :title="it.count > 1 ? `${it.name} ×${it.count}` : it.name"
-              class="reward-thumb"
-              :class="`rarity-${it.rarity}`"
-            />
-          </div>
-          <!-- 展开: 事件时间线 + 收获明细 + 交换留痕 (C5) -->
-          <div v-if="expandedLog === log.id" class="log-detail">
-            <p v-for="(ev, i) in log.events ?? []" :key="i" class="log-event">
-              <span class="log-event-time">{{ ev.time?.slice(11, 16) }}</span> {{ ev.text }}
-            </p>
-            <p v-if="log.rewards?.exchanged" class="log-exchange">
-              用「{{ logItemName(log, log.rewards.exchanged.gave) }}」换到了「{{ logItemName(log, log.rewards.exchanged.got) }}」
-            </p>
-            <p v-else-if="log.rewards?.gift_returned" class="log-exchange">把伴手礼又抱回来了（有点害羞）</p>
-          </div>
-        </article>
-      </div>
     </template>
 
     <!-- C3: 物品详情弹层 -->

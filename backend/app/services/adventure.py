@@ -28,15 +28,17 @@ TRAVEL_MIN_HOURS = 2       # 旅行最短时长
 TRAVEL_MAX_HOURS = 6       # 旅行最长时长
 
 _POLISH_SYSTEM = (
-    "你是宠物写给主人的旅行信。根据旅行背景、基调和事件列表, 改写成150字以内、温馨可爱的"
+    "你是宠物写给主人的旅行信。根据旅行背景、基调、出场角色和事件节点, 改写成200字以内、温馨可爱的"
     "第一人称(宠物视角)的信。规则:\n"
     "1. 这是写给主人的信, 像孩子给家长讲今天的见闻; 不是动作日志——"
     "禁止逐字描述自己的细枝末节动作(如\"我舔舔嘴巴\"), 禁止\"动作+冒号+感叹\"的句式。\n"
-    "2. 逻辑自洽: 食物才能说好吃, 地方只能说美/好玩。\n"
-    "3. 宠物不认识人类世界的名人和地名, 只能用它看到的模样来描述(陌生化转述), "
+    "2. 要讲故事, 不要流水账: 用\"初见场景 → 经历(挑1-2个事件详写, 出场角色要有戏份) → 小转折/小发现\"的结构, "
+    "场景描写结合背景地的风貌, 让读者能想象画面。\n"
+    "3. 逻辑自洽: 食物才能说好吃, 地方只能说美/好玩。\n"
+    "4. 宠物不认识人类世界的名人和地名, 只能用它看到的模样来描述(陌生化转述), "
     "绝不写出真实人名/地名/作品名。\n"
-    "4. 如果带回了物品, 自然地提到是想着主人才带回来的(挑1件提, 不罗列清单)。\n"
-    "5. 结尾落在对主人的想念或期待分享上。\n"
+    "5. 如果带回了物品, 自然地提到是想着主人才带回来的(挑1件提, 不罗列清单)。\n"
+    "6. 结尾落在对主人的想念或期待分享上。\n"
     "只输出信的正文。"
 )
 
@@ -147,7 +149,7 @@ async def _polish_narrative(pet: Pet, seed_def: dict, flavor: str, events: list[
              {"role": "user", "content": user_prompt}],
             tier="lite",
             pet_id=str(pet.id),
-            max_tokens=400,
+            max_tokens=600,
             temperature=0.7,
         )
         narrative = result.content.strip()
@@ -189,6 +191,10 @@ async def _settle_trip(db: Session, pet: Pet, travel: dict) -> AdventureLog:
     if result.exchanged:
         remove_item(pet, result.exchanged["gave"])
 
+    # H8: 首次到达此地 → 结算时生成明信片 (判定必须在 add(log) 之前, 否则把本趟日志算进去)
+    from . import postcard as postcard_service
+    first_visit = postcard_service.is_first_visit(db, pet.id, seed_def["id"])
+
     log = AdventureLog(
         pet_id=pet.id,
         events=result.events,
@@ -202,6 +208,7 @@ async def _settle_trip(db: Session, pet: Pet, travel: dict) -> AdventureLog:
             "seed": seed_def["id"],
             "dest": seed_def["name"],
             "flavor": result.flavor,
+            **({"postcard_pending": True} if first_visit else {}),
         },
         started_at=start,
         ended_at=end,
@@ -210,6 +217,9 @@ async def _settle_trip(db: Session, pet: Pet, travel: dict) -> AdventureLog:
     gain_exp(pet, int(result.rewards.get("exp", 0)))
     pet.loadout = {}
     db.flush()
+
+    if first_visit:
+        postcard_service.dispatch_postcard(log.id, pet.id)
     return log
 
 
@@ -271,6 +281,8 @@ def log_to_out(log: AdventureLog) -> dict:
             "consumed": rewards.get("consumed", []),
             "exchanged": rewards.get("exchanged"),
             "gift_returned": bool(rewards.get("gift_returned", False)),
+            "postcard": rewards.get("postcard"),
+            "postcard_pending": bool(rewards.get("postcard_pending", False)),
         },
         "dest": rewards.get("dest", ""),
         "flavor": rewards.get("flavor", ""),
