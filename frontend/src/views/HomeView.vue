@@ -29,6 +29,23 @@ const letter = ref<AdventureLogOut | null>(null)
 const letterOpen = ref(false)
 const awayLoadout = ref<LoadoutOut | null>(null)
 
+// H9: 窝边明信片 (它带回家的宝贝足迹, 点开看集合)
+const postcards = ref<AdventureLogOut[]>([])
+const galleryOpen = ref(false)
+
+async function loadPostcards() {
+  try {
+    const { logs } = await api.getAdventureLogs(20)
+    postcards.value = logs.filter((l) => l.rewards?.postcard)
+  } catch { /* 明信片加载失败不影响主页 */ }
+}
+
+function fmtDay(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 // 孵化进度驱动蛋的摇晃动画 (保留原交互: >30 开始摇晃)
 const hatchProgress = computed(() => egg.value?.hatch_value ?? 0)
 
@@ -158,6 +175,7 @@ onMounted(async () => {
   if (phase.value === 'pet') await checkReturn()
   if (pet.value?.away) await loadAwayLoadout()
   if (spritePending.value) pollSprite()
+  if (phase.value === 'pet') loadPostcards()
   scheduleAmbient()
 })
 
@@ -447,8 +465,8 @@ function itemNameById(itemId: string): string {
       </svg>
     </div>
 
-    <!-- 形象生成中的占位发光小生物 (巢位锚点) -->
-    <div v-if="phase === 'pet' && !spriteReady" class="anchor-slot">
+    <!-- 形象生成中的占位发光小生物 (巢位锚点; H2: 旅行中不显示) -->
+    <div v-if="phase === 'pet' && !spriteReady && pet && !pet.away" class="anchor-slot">
       <svg viewBox="180 505 90 105" class="pet-creature">
         <circle cx="225" cy="576" r="58" fill="url(#egg-halo)" />
         <path d="M212,548 L206,528 L224,542 Z" fill="#fff3dd" />
@@ -637,9 +655,37 @@ function itemNameById(itemId: string): string {
       </router-link>
     </template>
 
+    <!-- H9: 窝边明信片 —— 它带回家的宝贝足迹, 最近 3 张钉在巢边草地, 点开看集合 -->
+    <div v-if="phase === 'pet' && postcards.length" class="nest-postcards">
+      <button
+        v-for="(p, i) in postcards.slice(0, 3)"
+        :key="p.id"
+        class="nest-pc"
+        :style="{ rotate: `${(i - 1) * 6}deg` }"
+        :aria-label="`查看来自${p.dest}的明信片`"
+        @click="galleryOpen = true"
+      >
+        <img :src="p.rewards!.postcard!" :alt="p.dest || '远方'" />
+      </button>
+    </div>
+
+    <!-- H9: 明信片集合 (底部抽屉) -->
+    <div v-if="galleryOpen" class="mask" @click.self="galleryOpen = false">
+      <div class="letter-card gallery-card">
+        <p class="letter-title">📮 明信片墙</p>
+        <p class="gallery-sub">它去过的每个地方，都留了一张照片</p>
+        <div class="gallery-grid stagger">
+          <figure v-for="p in postcards" :key="p.id" class="gallery-item">
+            <img :src="p.rewards!.postcard!" :alt="p.dest || '远方'" />
+            <figcaption>{{ p.dest || '远方' }} · {{ fmtDay(p.ended_at) }}</figcaption>
+          </figure>
+        </div>
+        <button class="wood-btn letter-close" @click="galleryOpen = false">收好啦</button>
+      </div>
+    </div>
+
     <!-- H4/H5: 拆开的信件 —— 日记 + 收获(品级光效/NEW!) + 行囊结算留痕 -->
-    <div v-if="letter && letterOpen" class="mask" @click.self="closeLetter">
-      <div class="letter-card">
+    <div v-if="letter && letterOpen" class="mask" @click.self="closeLetter">      <div class="letter-card">
         <p class="letter-title">✉️ {{ pet?.name }}的信 · {{ letter.dest || '远方' }}</p>
         <!-- H8: 首到某地的明信片打卡照 -->
         <img
@@ -1093,6 +1139,68 @@ function itemNameById(itemId: string): string {
   border: 1px solid rgba(122, 74, 30, 0.35);
 }
 
+/* ===== H9: 窝边明信片 (场景实物, 拍立得小卡钉在巢边草地) ===== */
+.nest-postcards {
+  position: absolute;
+  z-index: 2;
+  right: 5%;
+  bottom: 21%;
+  display: flex;
+  align-items: flex-end;
+}
+.nest-pc {
+  width: 62px;
+  padding: 4px 4px 12px;
+  border: none;
+  background: #f7ecd4;
+  box-shadow: 0 4px 12px rgba(10, 6, 20, 0.55);
+  cursor: pointer;
+  margin-left: -16px;
+}
+.nest-pc:first-child { margin-left: 0; }
+.nest-pc img {
+  width: 100%;
+  display: block;
+  border-radius: 3px;
+}
+
+/* H9: 明信片集合抽屉 (复用信纸抽屉, 内容更满) */
+.gallery-card {
+  max-height: 72vh;
+}
+.gallery-sub {
+  text-align: center;
+  margin: -6px 0 12px;
+  font-size: var(--fs-xs);
+  color: #a08a6a;
+}
+.gallery-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.gallery-item {
+  margin: 0;
+  background: #fff;
+  padding: 5px 5px 8px;
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(60, 40, 20, 0.25);
+  rotate: -0.8deg;
+}
+.gallery-item:nth-child(even) { rotate: 1deg; }
+.gallery-item img {
+  width: 100%;
+  display: block;
+  border-radius: 4px;
+}
+.gallery-item figcaption {
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: #4a3320;
+  margin-top: 5px;
+  letter-spacing: 1px;
+}
+
 /* 轻提示 */
 .toast {
   position: absolute;
@@ -1211,7 +1319,7 @@ function itemNameById(itemId: string): string {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  max-width: 88%;
+  max-width: 72%;
   padding: 8px 18px;
   border: 1px solid var(--color-paper-edge);
   border-radius: 12px;
