@@ -621,20 +621,19 @@ function itemNameById(itemId: string): string {
         </div>
       </router-link>
 
-      <!-- 旅行中: 底部纸张细横幅 (H2), 不占主动作位 -->
-      <div v-if="pet.away" class="away-banner">
-        <span class="away-line">
-          🏕️ 「{{ pet.name }}」去了{{ pet.travel?.dest ?? '远方' }}<template v-if="backAtText"> · 预计 {{ backAtText }} 归来</template>
-        </span>
-        <span v-if="awayLoadout" class="away-pack">
-          🎒
-          <template v-for="slot in LOADOUT_SLOTS" :key="slot.key">
-            <span v-if="loadoutItemName(awayLoadout[slot.key])" class="away-loadout-item">
-              {{ slot.label }}·{{ loadoutItemName(awayLoadout[slot.key]) }}
-            </span>
-          </template>
-          <span v-if="!awayLoadout.food && !awayLoadout.gift && !awayLoadout.charm">什么也没带</span>
-        </span>
+      <!-- 旅行中: 空地上立起木牌告示 (场景实物, 替代纸横幅) -->
+      <div v-if="pet.away" class="away-sign">
+        <img class="sign-img" :src="'/static/ui/sign_post.png'" alt="" />
+        <div class="sign-text">
+          <p class="sign-title">「{{ pet.name }}」出门啦</p>
+          <p class="sign-sub">去了{{ pet.travel?.dest ?? '远方' }}<template v-if="backAtText"> · 预计 {{ backAtText }} 归来</template></p>
+          <p v-if="awayLoadout" class="sign-loadout">
+            <template v-for="slot in LOADOUT_SLOTS" :key="slot.key">
+              <span v-if="loadoutItemName(awayLoadout[slot.key])">{{ slot.label }}·{{ loadoutItemName(awayLoadout[slot.key]) }} </span>
+            </template>
+            <span v-if="!awayLoadout.food && !awayLoadout.gift && !awayLoadout.charm">空着爪子去的</span>
+          </p>
+        </div>
       </div>
       <template v-else>
         <!-- 左下: 主动作 = 搁在草地上的背包 (场景实物直放, 无底板) -->
@@ -1290,8 +1289,8 @@ function itemNameById(itemId: string): string {
   rotate: -2deg;
 }
 .wood-diary .wood-icon-img {
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
 }
 /* 场景入口: 实物直放无底板 (规范 v1.2 §5: 主页入口是场景里的实物, 不是贴上去的板子) */
 .scene-entry {
@@ -1308,39 +1307,50 @@ function itemNameById(itemId: string): string {
   letter-spacing: 3px;
   text-shadow: 0 1px 3px rgba(10, 6, 20, 0.9), 0 0 10px rgba(10, 6, 20, 0.6);
 }
-/* 旅行中: 底部纸张细横幅 (H2, 学农场任务条) */
-.away-banner {
+/* 旅行中: 空地木牌告示 (H2 场景化, 2026-09-07: 替代纸横幅; 立在宠物平时待的空地上) */
+.away-sign {
   position: absolute;
   z-index: 2;
-  left: 50%;
-  bottom: 16px;
+  left: 40%;
+  bottom: 25%;
+  width: 200px;
   transform: translateX(-50%);
+  pointer-events: none;
+}
+.sign-img {
+  width: 100%;
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(10, 6, 20, 0.4));
+}
+.sign-text {
+  position: absolute;
+  top: 5%;
+  left: 8%;
+  right: 8%;
+  height: 26%;              /* 牌面区域 (sign_post 素材上部) */
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  max-width: 72%;
-  padding: 8px 18px;
-  border: 1px solid var(--color-paper-edge);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #f9efdb, #efdfbe);
-  box-shadow: 0 6px 18px rgba(10, 6, 20, 0.45);
-  font-size: var(--fs-sm);
-  color: var(--color-paper-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  justify-content: center;
+  text-align: center;
 }
-.away-pack {
-  font-size: var(--fs-xs);
-  color: #7a5c3a;
+.sign-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: #4a3320;
+  letter-spacing: 1px;
 }
-.away-loadout-item {
-  margin: 0 3px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: rgba(122, 85, 48, 0.12);
-  border: 1px solid rgba(122, 85, 48, 0.3);
+.sign-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-micro);
+  color: rgba(74, 51, 32, 0.8);
+}
+.sign-loadout {
+  margin: 3px 0 0;
+  font-size: var(--fs-micro);
+  color: rgba(122, 74, 30, 0.75);
 }
 
 /* ===== 归来便签信 (H3, 规范 v1.2): AI 手绘便签纸(自带图钉)钉在树旁, 不遮挡宠物 ===== */
