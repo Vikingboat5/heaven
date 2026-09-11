@@ -45,8 +45,12 @@ def _generate(log_id: int, pet_id: int) -> None:
         if frame.is_file():
             reference = "data:image/png;base64," + base64.b64encode(frame.read_bytes()).decode()
 
+        # 打卡动作: 种子内容驱动 (postcard_scene), 与环境/角色互动而非站桩
+        scene_action = seed_def.get("postcard_scene") or f"它在{background}里好奇地东张西望"
         prompt = (
-            f"一张旅行明信片插画: 参考图中的这只小家伙({appearance})在{background}开心地坐着打卡, "
+            f"一张旅行明信片插画: {scene_action}。场景: {background}。"
+            f"主角是参考图中的这只小家伙({appearance}), 毛色长相必须与参考图一致, "
+            f"但姿势要按场景描述自然变化, 不要照搬参考图的姿势, 要和环境产生互动。"
             f"{STYLE}, 明信片式构图, 无文字"
         )
         url = ArkImageClient().generate_image(prompt, size="2048x2048", reference_url=reference)

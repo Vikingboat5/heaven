@@ -6,6 +6,7 @@
     "min_level": 1,
     "time_gate": null,
     "background": "月面上的宫殿：白玉台阶、终年不散的桂花香、银白色云雾缭绕。宫里有一只捣药的白兔（红眼睛、系着小围裙），还有一个高大的男人在砍一棵永远砍不倒的桂树。在这里能看到一颗蓝色的大圆球悬在天上。",
+    "postcard_scene": "它趴在白玉台阶上, 前爪捧着一块桂花糕啃了一口, 旁边捣药的白兔歪头看它, 背景是银白宫殿和天上的蓝色大圆球",
     "cast": [
       {"id": "npc:jade_rabbit", "desc_words": "捣药的白兔, 红眼睛, 系着小围裙", "interactions": ["receive_gift", "exchange"]},
       {"id": "npc:wugang", "desc_words": "砍一棵永远砍不倒的桂树的高大男人", "interactions": ["meet_character", "help"]}
@@ -71,6 +72,7 @@
   {
     "id": "field:forest", "pack": "field_common", "name": "萤火森林", "min_level": 1, "time_gate": null,
     "background": "夜晚的森林：萤火虫、巨大的蘑菇圈、古老的树木。",
+    "postcard_scene": "它踮着后腿站起来, 举高一只前爪去够停在蘑菇伞沿的萤火虫, 尾巴翘着保持平衡, 蘑菇圈和古树环绕",
     "cast": [], "atmosphere": "萤火虫/蘑菇圈/古树",
     "fallback_item": "berry",
     "loot_table": [
@@ -98,6 +100,7 @@
   {
     "id": "field:valley", "pack": "field_common", "name": "潺潺溪谷", "min_level": 1, "time_gate": null,
     "background": "清凉的溪谷：溪水、瀑布、水草和回声。",
+    "postcard_scene": "它站在溪边一块圆石上, 伸长一只前爪去拍溅起的水花, 水花沾湿了爪尖, 背景是瀑布和弯弯的溪水",
     "cast": [], "atmosphere": "溪水/瀑布/清凉",
     "fallback_item": "pebble",
     "loot_table": [
@@ -124,6 +127,7 @@
   {
     "id": "field:hillside", "pack": "field_common", "name": "风语山坡", "min_level": 2, "time_gate": null,
     "background": "开阔的山坡：大风、草坡、山顶的云。",
+    "postcard_scene": "它迎着大风站在草坡最高处, 眯着眼睛, 耳朵和尾巴的毛被风吹得向后飞起, 爪边滚着一朵刚摘的野花",
     "cast": [], "atmosphere": "大风/草坡/开阔",
     "fallback_item": "alpine_flower",
     "loot_table": [
@@ -147,6 +151,7 @@
   {
     "id": "field:village", "pack": "field_common", "name": "蘑菇村", "min_level": 3, "time_gate": null,
     "background": "蘑菇小精灵的村庄：集市、露水茶、旧货摊。",
+    "postcard_scene": "它趴在集市的旧货摊木桌上, 探头用鼻子嗅一颗彩色玻璃珠, 胡须都快碰到珠子了, 背景是蘑菇屋顶和热闹的集市小摊",
     "cast": [], "atmosphere": "集市/小精灵/热闹",
     "fallback_item": "glass_marble",
     "loot_table": [
@@ -167,6 +172,7 @@
   {
     "id": "field:lake", "pack": "field_common", "name": "月光湖", "min_level": 5, "time_gate": null,
     "background": "夜晚的湖：月光洒在湖面像碎银, 湖里有银色大鱼。",
+    "postcard_scene": "它趴在湖边的浅滩上, 一只爪子伸进碎银般的湖水里拨弄, 正好奇地盯着水面下一条游过的银色大鱼",
     "cast": [], "atmosphere": "月光/湖面/碎银",
     "fallback_item": "moonlight_shell",
     "loot_table": [
