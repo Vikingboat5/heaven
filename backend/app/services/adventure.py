@@ -141,7 +141,8 @@ async def _polish_narrative(pet: Pet, seed_def: dict, flavor: str, events: list[
         f"出场的角色: {cast}\n"
         f"本趟基调: {catalog.FLAVOR_LABELS.get(flavor, flavor)}\n"
         f"带回给主人的物品: {gifts}\n"
-        f"事件:\n{lines}"
+        f"事件:\n{lines}\n"
+        f"格式: 开头称呼\"主人\", 结尾署名必须是「{pet.name}」, 禁止自取其他名字。"
     )
     try:
         result = await gateway.chat(
