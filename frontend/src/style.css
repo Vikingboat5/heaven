@@ -66,17 +66,18 @@ body {
 }
 
 /* ---- 全局微交互 (规范 §4) ---- */
-/* 1. 按压反馈: 所有可点元素 */
+/* 1. 按压反馈: 所有可点元素, 松开 spring 回弹 (v1.3) */
 button,
 a {
-  transition: transform var(--motion-fast) var(--ease-out),
+  transition: transform var(--motion-med) var(--ease-spring),
     background var(--motion-fast) var(--ease-out),
     border-color var(--motion-fast) var(--ease-out),
     box-shadow var(--motion-med) var(--ease-out);
 }
 button:active,
 a:active {
-  transform: scale(0.96);
+  transform: scale(0.94);
+  transition-duration: var(--motion-fast);
 }
 
 /* 2. 错峰入场: 列表/网格容器加 .stagger */

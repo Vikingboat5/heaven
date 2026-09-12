@@ -1,18 +1,27 @@
 <script setup lang="ts">
-// 全局 header 已撤下 (规范 v1.2): 主页即场景; 各内容页自带返回; 退出在宠物详情页
+// 全局 header 已撤下 (规范 v1.2): 主页即场景; 底部 tab 导航 (规范 v1.3)
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from './stores/auth'
+import BottomTabBar from './components/BottomTabBar.vue'
+
+const route = useRoute()
+const auth = useAuthStore()
+// 登录后除问答/登录页外都显示底部 tab
+const showTabs = computed(() => !!auth.token && route.name !== 'login' && route.name !== 'quiz')
 </script>
 
 <template>
   <div class="app-shell">
-    <!-- 规范 v1.2: 全局 header 已撤下 (主页即场景; 各内容页自带返回; 退出在宠物详情页) -->
-    <main>
-      <!-- 规范 §4: 页面转场 fade + 上移 8px, 180ms -->
+    <main :class="{ 'with-tabs': showTabs }">
+      <!-- 规范 §4: 页面转场 fade + 上移 8px -->
       <router-view v-slot="{ Component }">
         <transition name="page" mode="out-in">
           <component :is="Component" />
         </transition>
       </router-view>
     </main>
+    <BottomTabBar v-if="showTabs" />
   </div>
 </template>
 
@@ -29,19 +38,22 @@
 /* 页面转场 (规范 §4) */
 .page-enter-active,
 .page-leave-active {
-  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
 }
 .page-enter-from {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(10px);
 }
 .page-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateY(-10px);
 }
 main {
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+main.with-tabs {
+  padding-bottom: 76px; /* 底部 tab bar 占位 */
 }
 </style>

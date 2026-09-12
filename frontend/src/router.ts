@@ -6,6 +6,7 @@ import PackView from './views/PackView.vue'
 import CollectionView from './views/CollectionView.vue'
 import DiaryView from './views/DiaryView.vue'
 import PetView from './views/PetView.vue'
+import PostcardWallView from './views/PostcardWallView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -20,6 +21,8 @@ export const router = createRouter({
     { path: '/diary', name: 'diary', component: DiaryView },
     // H7: 宠物详情页 (改名/重新生成形象/退出)
     { path: '/pet', name: 'pet', component: PetView },
+    // 规范 v1.3: 明信片墙 (软木钉墙)
+    { path: '/postcards', name: 'postcards', component: PostcardWallView },
     // v1.2: 旅行日记并入收藏页, 旧链接重定向 → 2026-09 改指独立日记页
     { path: '/adventure', redirect: '/diary' },
     { path: '/login', name: 'login', component: LoginView },

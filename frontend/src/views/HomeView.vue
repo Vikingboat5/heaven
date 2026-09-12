@@ -29,21 +29,14 @@ const letter = ref<AdventureLogOut | null>(null)
 const letterOpen = ref(false)
 const awayLoadout = ref<LoadoutOut | null>(null)
 
-// H9: 窝边明信片 (它带回家的宝贝足迹, 点开看集合)
+// H9: 窝边明信片 (它带回家的宝贝足迹, 点进明信片墙页)
 const postcards = ref<AdventureLogOut[]>([])
-const galleryOpen = ref(false)
 
 async function loadPostcards() {
   try {
     const { logs } = await api.getAdventureLogs(20)
     postcards.value = logs.filter((l) => l.rewards?.postcard)
   } catch { /* 明信片加载失败不影响主页 */ }
-}
-
-function fmtDay(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // 孵化进度驱动蛋的摇晃动画 (保留原交互: >30 开始摇晃)
@@ -636,52 +629,30 @@ function itemNameById(itemId: string): string {
         </div>
       </div>
       <template v-else>
-        <!-- 左下: 主动作 = 搁在草地上的背包 (场景实物直放, 无底板) -->
+        <!-- 左下: 主动作 = 搁在草地上的背包 (场景实物直放; 日记/背包导航在底部 tab bar) -->
         <router-link to="/pack" class="wood-btn scene-entry wood-primary">
           <img class="wood-icon-img" :src="'/static/ui/icon_pack.png'" alt="" />
           <span>打包行李</span>
         </router-link>
       </template>
-      <!-- 右下: 日记本 (场景实物直放, 无底板) -->
-      <router-link to="/diary" class="wood-btn scene-entry wood-diary">
-        <img class="wood-icon-img" :src="'/static/ui/icon_book.png'" alt="" />
-        <span>日记</span>
-      </router-link>
-      <!-- 右下: 收藏篮 (场景实物直放, 无底板) -->
-      <router-link to="/collection" class="wood-btn scene-entry wood-side">
-        <img class="wood-icon-img" :src="'/static/ui/icon_basket.png'" alt="" />
-        <span>收藏</span>
-      </router-link>
     </template>
 
-    <!-- H9: 窝边明信片 —— 它带回家的宝贝足迹, 最近 3 张钉在巢边草地, 点开看集合 -->
-    <div v-if="phase === 'pet' && postcards.length" class="nest-postcards">
-      <button
+    <!-- H9: 窝边明信片 —— 它带回家的宝贝足迹, 最近 3 张钉在巢边草地, 点进明信片墙 -->
+    <router-link
+      v-if="phase === 'pet' && postcards.length"
+      to="/postcards"
+      class="nest-postcards"
+      aria-label="打开明信片墙"
+    >
+      <span
         v-for="(p, i) in postcards.slice(0, 3)"
         :key="p.id"
         class="nest-pc"
         :style="{ rotate: `${(i - 1) * 6}deg` }"
-        :aria-label="`查看来自${p.dest}的明信片`"
-        @click="galleryOpen = true"
       >
         <img :src="p.rewards!.postcard!" :alt="p.dest || '远方'" />
-      </button>
-    </div>
-
-    <!-- H9: 明信片集合 (底部抽屉) -->
-    <div v-if="galleryOpen" class="mask" @click.self="galleryOpen = false">
-      <div class="letter-card gallery-card">
-        <p class="letter-title">📮 明信片墙</p>
-        <p class="gallery-sub">它去过的每个地方，都留了一张照片</p>
-        <div class="gallery-grid stagger">
-          <figure v-for="p in postcards" :key="p.id" class="gallery-item">
-            <img :src="p.rewards!.postcard!" :alt="p.dest || '远方'" />
-            <figcaption>{{ p.dest || '远方' }} · {{ fmtDay(p.ended_at) }}</figcaption>
-          </figure>
-        </div>
-        <button class="wood-btn letter-close" @click="galleryOpen = false">收好啦</button>
-      </div>
-    </div>
+      </span>
+    </router-link>
 
     <!-- H4/H5: 拆开的信件 —— 日记 + 收获(品级光效/NEW!) + 行囊结算留痕 -->
     <div v-if="letter && letterOpen" class="mask" @click.self="closeLetter">      <div class="letter-card">
@@ -1138,7 +1109,7 @@ function itemNameById(itemId: string): string {
   border: 1px solid rgba(122, 74, 30, 0.35);
 }
 
-/* ===== H9: 窝边明信片 (场景实物, 拍立得小卡钉在巢边草地) ===== */
+/* ===== H9: 窝边明信片 (场景实物, 拍立得小卡钉在巢边草地; 点进明信片墙页) ===== */
 .nest-postcards {
   position: absolute;
   z-index: 2;
@@ -1146,14 +1117,13 @@ function itemNameById(itemId: string): string {
   bottom: 21%;
   display: flex;
   align-items: flex-end;
+  text-decoration: none;
 }
 .nest-pc {
   width: 62px;
   padding: 4px 4px 12px;
-  border: none;
   background: #f7ecd4;
   box-shadow: 0 4px 12px rgba(10, 6, 20, 0.55);
-  cursor: pointer;
   margin-left: -16px;
 }
 .nest-pc:first-child { margin-left: 0; }
@@ -1161,43 +1131,6 @@ function itemNameById(itemId: string): string {
   width: 100%;
   display: block;
   border-radius: 3px;
-}
-
-/* H9: 明信片集合抽屉 (复用信纸抽屉, 内容更满) */
-.gallery-card {
-  max-height: 72vh;
-}
-.gallery-sub {
-  text-align: center;
-  margin: -6px 0 12px;
-  font-size: var(--fs-xs);
-  color: #a08a6a;
-}
-.gallery-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.gallery-item {
-  margin: 0;
-  background: #fff;
-  padding: 5px 5px 8px;
-  border-radius: 6px;
-  box-shadow: 0 3px 10px rgba(60, 40, 20, 0.25);
-  rotate: -0.8deg;
-}
-.gallery-item:nth-child(even) { rotate: 1deg; }
-.gallery-item img {
-  width: 100%;
-  display: block;
-  border-radius: 4px;
-}
-.gallery-item figcaption {
-  text-align: center;
-  font-size: var(--fs-xs);
-  color: #4a3320;
-  margin-top: 5px;
-  letter-spacing: 1px;
 }
 
 /* 轻提示 */
@@ -1257,40 +1190,17 @@ function itemNameById(itemId: string): string {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 左下/右下入口定位 (rotate 用独立属性, 不与按压 scale 冲突) */
+/* 左下: 主动作定位 (底部 tab bar 上方; rotate 用独立属性, 不与按压 scale 冲突) */
 .wood-primary {
   position: absolute;
   z-index: 2;
   left: 20px;
-  bottom: 18px;
+  bottom: 92px;
   rotate: -1.5deg;
 }
 .wood-primary .wood-icon-img {
   width: 56px;
   height: 56px;
-}
-.wood-side {
-  position: absolute;
-  z-index: 2;
-  right: 20px;
-  bottom: 18px;
-  rotate: 1.2deg;
-}
-.wood-side .wood-icon-img {
-  width: 46px;
-  height: 46px;
-}
-/* 日记本: 右下偏中 (收藏左边) */
-.wood-diary {
-  position: absolute;
-  z-index: 2;
-  right: 96px;
-  bottom: 18px;
-  rotate: -2deg;
-}
-.wood-diary .wood-icon-img {
-  width: 46px;
-  height: 46px;
 }
 /* 场景入口: 实物直放无底板 (规范 v1.2 §5: 主页入口是场景里的实物, 不是贴上去的板子) */
 .scene-entry {
