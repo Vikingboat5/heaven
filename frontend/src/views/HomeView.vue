@@ -645,7 +645,7 @@ function itemNameById(itemId: string): string {
       aria-label="打开明信片墙"
     >
       <span
-        v-for="(p, i) in postcards.slice(0, 3)"
+        v-for="(p, i) in postcards.slice(0, 1)"
         :key="p.id"
         class="nest-pc"
         :style="{ rotate: `${(i - 1) * 6}deg` }"

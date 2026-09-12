@@ -102,7 +102,11 @@ function fmtDay(iso: string | null | undefined): string {
   flex: 1;
   padding: 18px 20px 40px;
   overflow: hidden;
-  background: linear-gradient(180deg, #150c2e 0%, #2a1850 55%, #3d2358 82%, #4a2c62 100%);
+  /* 梦幻底图 (scripts/gen_wall_bg.py 生成, 与主页同画风) */
+  background:
+    linear-gradient(rgba(21, 12, 46, 0.18), rgba(21, 12, 46, 0.30)),
+    url('/static/scenes/wall_dream/bg.jpg') center / cover no-repeat,
+    linear-gradient(180deg, #150c2e 0%, #2a1850 55%, #3d2358 100%);
 }
 /* 星星 */
 .twinkle {
