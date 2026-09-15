@@ -26,6 +26,7 @@ async def lifespan(app: FastAPI):
     try:
         db = SessionLocal()
         db.execute(text("ALTER TABLE pets ADD COLUMN IF NOT EXISTS loadout JSONB DEFAULT '{}'::jsonb"))
+        db.execute(text("ALTER TABLE pets ADD COLUMN IF NOT EXISTS collection JSONB DEFAULT '[]'::jsonb"))
         # 简化版(v1.1)已从模型删除的旧列, 同步从库中移除
         db.execute(text("ALTER TABLE pets DROP COLUMN IF EXISTS state"))
         db.execute(text("ALTER TABLE pets DROP COLUMN IF EXISTS state_updated_at"))

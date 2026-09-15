@@ -120,10 +120,12 @@ def reward_items_out(items: list) -> list[dict]:
 
 
 def catalog_out(db: Session, pet: Pet | None) -> list[dict]:
-    """图鉴目录: 全物品 × 当前用户持有/首发现状态"""
+    """图鉴目录: 全物品 × 图鉴解锁(collection, 曾经获得)/首发现状态
+    2026-09-12: obtained 从'当前持有'改为'曾经获得过' —— 消耗/交换不再导致图鉴退回剪影"""
     owned: dict[str, dict] = {}
     for entry in (pet.inventory or []) if pet else []:
         owned[entry.get("item", "")] = entry
+    unlocked = set(pet.collection or []) if pet else set()
     states = {s.item_id: s for s in db.query(ItemState).all()}
     users = {u.id: u for u in db.query(User).all()}
     out = []
@@ -146,7 +148,7 @@ def catalog_out(db: Session, pet: Pet | None) -> list[dict]:
             "image": it["image"],
             "pack": seed.get("pack", "misc"),
             "seed_name": seed.get("name", ""),
-            "obtained": entry is not None,
+            "obtained": iid in unlocked,
             "count": int(entry.get("count", 0)) if entry else 0,
             "is_new": bool(entry.get("is_new", False)) if entry else False,
             "first_discovery": first,

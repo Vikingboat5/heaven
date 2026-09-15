@@ -63,6 +63,8 @@ class Pet(Base):
     inventory: Mapped[list] = mapped_column(JSON, default=list)
     # 行囊 (v1.2): {"food": item_id|null, "gift": ..., "charm": ...} 出门时锁定, 归来结算后清空
     loadout: Mapped[dict] = mapped_column(JSON, default=dict)
+    # 图鉴解锁记录 (2026-09-12): 曾经获得过的 item_id 列表, 消耗/交换不影响 (obtained=曾经拥有, 非当前持有)
+    collection: Mapped[list] = mapped_column(JSON, default=list)
     # 旅行状态: {} 在家; {"left_at":iso,"back_at":iso,"dest":名,"seed":seed_id,"flavor":基调} 旅行中
     travel: Mapped[dict] = mapped_column(JSON, default=dict)
     hatch_seed: Mapped[str] = mapped_column(String(64), default="")

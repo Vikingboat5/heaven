@@ -27,7 +27,12 @@ def gain_exp(pet: Pet, amount: int) -> int:
 
 def add_item(pet: Pet, item_id: str, count: int = 1, *,
              zone: str = "", via: str = "forage", is_new: bool = True) -> None:
-    """往背包放物品。调用方负责 commit。via: forage(拾获)/exchange(交换)/gift(获赠)"""
+    """往背包放物品。调用方负责 commit。via: forage(拾获)/exchange(交换)/gift(获赠)
+    获得即记入图鉴解锁 (collection, 消耗不影响)"""
+    coll = list(pet.collection or [])
+    if item_id not in coll:
+        coll.append(item_id)
+        pet.collection = coll
     inventory = [dict(entry) for entry in (pet.inventory or [])]
     for entry in inventory:
         if entry.get("item") == item_id:

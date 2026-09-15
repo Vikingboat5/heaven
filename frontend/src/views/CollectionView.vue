@@ -23,6 +23,17 @@ const myUsername = localStorage.getItem('pp_username') ?? ''
 const loading = ref(true)
 const error = ref('')
 
+/** 分类筛选 (2026-09-12 拍板): 全部/已解锁/待解锁 */
+type Filter = 'all' | 'unlocked' | 'locked'
+const filter = ref<Filter>('all')
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'unlocked', label: '已解锁' },
+  { key: 'locked', label: '待解锁' },
+]
+/** 品级排序: 普通 > 稀有 > 传说 (拍板) */
+const RARITY_ORDER: Record<string, number> = { common: 0, rare: 1, epic: 2 }
+
 const items = ref<CatalogItemOut[]>([])
 const detail = ref<CatalogItemOut | null>(null)
 
@@ -37,16 +48,22 @@ onMounted(async () => {
   }
 })
 
-/** C1: 按 pack 分组 (保持目录顺序) */
+/** C1: 按 pack 分组 (保持目录顺序) + 分类筛选 + 组内按 普通>稀有>传说 排序 */
 const packs = computed(() => {
   const groups: { pack: string; label: string; items: CatalogItemOut[] }[] = []
+  const match = (it: CatalogItemOut) =>
+    filter.value === 'all' || (filter.value === 'unlocked' ? it.obtained : !it.obtained)
   for (const it of items.value) {
+    if (!match(it)) continue
     let g = groups.find((x) => x.pack === it.pack)
     if (!g) {
       g = { pack: it.pack, label: PACK_LABELS[it.pack] ?? it.pack, items: [] }
       groups.push(g)
     }
     g.items.push(it)
+  }
+  for (const g of groups) {
+    g.items.sort((a, b) => (RARITY_ORDER[a.rarity] ?? 0) - (RARITY_ORDER[b.rarity] ?? 0))
   }
   return groups
 })
@@ -90,14 +107,26 @@ function fmtTime(iso: string | null): string {
 
     <header class="col-head">
       <button class="back" @click="router.push('/')">‹ 回家</button>
-      <h2>收藏</h2>
+      <h2>背包</h2>
     </header>
+
+    <!-- 分类筛选: 全部/已解锁/待解锁 -->
+    <div class="filter-row">
+      <button
+        v-for="f in FILTERS"
+        :key="f.key"
+        class="filter-chip"
+        :class="{ active: filter === f.key }"
+        @click="filter = f.key"
+      >{{ f.label }}</button>
+    </div>
 
     <p v-if="loading" class="state-text">加载中…</p>
     <p v-else-if="error" class="state-text">{{ error }}</p>
 
     <!-- ===== 图鉴 (C1/C3/C4) ===== -->
     <template v-else>
+      <p v-if="packs.length === 0" class="state-text">这个分类下还没有物品</p>
       <section v-for="g in packs" :key="g.pack" class="pack-group">
         <p class="pack-title">{{ g.label }} <span class="pack-progress">{{ packProgress(g) }}</span></p>
         <div class="grid stagger">
@@ -108,6 +137,7 @@ function fmtTime(iso: string | null): string {
             :class="[`rarity-${it.rarity}`, { silhouette: !it.obtained, 'epic-glow': it.obtained && it.rarity === 'epic' }]"
             @click="openDetail(it)"
           >
+            <span class="rarity-tag" :class="`tag-${it.rarity}`">{{ RARITY_LABELS[it.rarity] }}</span>
             <img :src="itemImageUrl(it.image)" :alt="it.obtained ? it.name : '???'" class="cell-img" />
             <span class="cell-name">{{ it.obtained ? it.name : '???' }}</span>
             <span v-if="it.obtained && it.is_new" class="new-badge badge-pulse">NEW!</span>
@@ -240,21 +270,65 @@ function fmtTime(iso: string | null): string {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 10px 2px;
+  padding: 16px 2px 10px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--color-text);
   cursor: pointer;
 }
-.cell.rarity-rare { border-color: rgba(120, 170, 255, 0.55); }
-.cell.rarity-epic { border-color: rgba(247, 201, 100, 0.65); }
+/* 品级强化 (2026-09-12 拍板: 不只边框, 底色+品级标签) */
+.cell.rarity-rare {
+  border-color: rgba(120, 170, 255, 0.75);
+  background: rgba(120, 170, 255, 0.10);
+}
+.cell.rarity-epic {
+  border-color: rgba(247, 201, 100, 0.85);
+  background: rgba(247, 201, 100, 0.12);
+}
+.rarity-tag {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: var(--fs-micro);
+  letter-spacing: 1px;
+  line-height: 1.5;
+}
+.tag-common { color: rgba(253, 240, 220, 0.55); background: rgba(255, 255, 255, 0.07); }
+.tag-rare { color: #9cc2ff; background: rgba(120, 170, 255, 0.18); }
+.tag-epic { color: #ffd98a; background: rgba(247, 201, 100, 0.2); }
 .cell.silhouette { cursor: default; opacity: 0.75; }
+.cell.silhouette .rarity-tag { opacity: 0.5; }
 .cell.silhouette .cell-img {
   filter: grayscale(1) brightness(0.35);
 }
 .cell-img { width: 44px; height: 44px; border-radius: 8px; }
 .cell-name { font-size: var(--fs-xs); }
+
+/* 分类筛选 chips */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.filter-chip {
+  padding: 5px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--color-glass-border);
+  background: var(--color-glass);
+  color: var(--color-text-dim);
+  font-size: var(--fs-md);
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.filter-chip.active {
+  background: rgba(247, 201, 138, 0.18);
+  border-color: rgba(247, 201, 138, 0.5);
+  color: var(--color-gold);
+  font-weight: 600;
+}
 .new-badge {
   position: absolute;
   top: -6px;
