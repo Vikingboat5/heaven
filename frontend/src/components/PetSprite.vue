@@ -27,6 +27,8 @@ const emit = defineEmits<{ (e: 'error'): void; (e: 'ready'): void }>()
 
 const manifest = ref<Manifest | null>(null)
 const currentSrc = ref('')
+const prevSrc = ref('')          // 交叉淡化: 上一帧垫在下面
+const fadeMs = ref(90)           // 淡化时长 = 帧间隔的 60%
 const failed = ref(false)
 // 缓存破坏: manifest 的 Last-Modified 作版本号, 重新生成形象后帧 URL 自动更新
 // (否则浏览器缓存会把新旧两套帧混着播, 看起来"两个形象交替闪烁")
@@ -55,9 +57,12 @@ function play(actionName: string) {
     return
   }
   tick = 0
+  fadeMs.value = Math.max(60, Math.round(meta.frame_ms * 0.6))
+  prevSrc.value = ''
   currentSrc.value = frameUrl(actionName, meta.sequence[0])
   timer = setInterval(() => {
     tick++
+    prevSrc.value = currentSrc.value
     currentSrc.value = frameUrl(actionName, meta.sequence[tick % meta.sequence.length])
   }, meta.frame_ms)
 }
@@ -68,6 +73,8 @@ function playOnce(actionName: string) {
   if (!meta || actionName === 'idle') return
   stop()
   tick = 0
+  fadeMs.value = Math.max(60, Math.round(meta.frame_ms * 0.6))
+  prevSrc.value = ''
   currentSrc.value = frameUrl(actionName, meta.sequence[0])
   timer = setInterval(() => {
     tick++
@@ -75,6 +82,7 @@ function playOnce(actionName: string) {
       play('idle')
       return
     }
+    prevSrc.value = currentSrc.value
     currentSrc.value = frameUrl(actionName, meta.sequence[tick])
   }, meta.frame_ms)
 }
@@ -109,20 +117,46 @@ defineExpose({ play, playOnce, availableActions })
 </script>
 
 <template>
-  <img
-    v-if="!failed && currentSrc"
-    class="pet-sprite"
-    :class="{ pixelated: manifest?.style === 'pixel', breathing }"
-    :src="currentSrc"
-    alt="宠物"
-    draggable="false"
-  />
+  <!-- 双层交叉淡化: 新帧淡入盖住旧帧, 消除帧动画硬切换的卡顿感 (2026-09-12) -->
+  <div v-if="!failed && currentSrc" class="sprite-stack" :class="{ breathing }">
+    <img
+      v-if="prevSrc && prevSrc !== currentSrc"
+      class="pet-sprite layer-under"
+      :class="{ pixelated: manifest?.style === 'pixel' }"
+      :src="prevSrc"
+      alt=""
+      draggable="false"
+    />
+    <img
+      :key="currentSrc"
+      class="pet-sprite layer-over"
+      :class="{ pixelated: manifest?.style === 'pixel' }"
+      :src="currentSrc"
+      :style="{ animationDuration: `${fadeMs}ms` }"
+      alt="宠物"
+      draggable="false"
+    />
+  </div>
 </template>
 
 <style scoped>
+.sprite-stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
 .pet-sprite {
+  position: absolute;
+  inset: 0;
   width: 100%; height: 100%; object-fit: contain;
   user-select: none; pointer-events: none;
+}
+.layer-over {
+  animation: frame-fade var(--motion-fast) var(--ease-out);
+}
+@keyframes frame-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .pixelated { image-rendering: pixelated; }
 .breathing { animation: sprite-breathe 2.8s ease-in-out infinite; }
