@@ -26,17 +26,19 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ (e: 'error'): void; (e: 'ready'): void }>()
 
 const manifest = ref<Manifest | null>(null)
-// 双层交叉淡化 v2: 两个常驻 img 交替切换 opacity (transition),
-// 不用 :key 重建元素+animation —— 实测后者透明度会卡在 0 (元素反复重建动画不前进)
-const srcA = ref('')
-const srcB = ref('')
-const aVisible = ref(true)
+// 交叉淡化 v3: 底层常驻当前帧(全程不透明), 顶层只淡入新帧;
+// 淡入完成后底层同步、顶层淡出(底下已是同一张图, 无感)。
+// (v2 两层各半透会透底 = 每帧暗一下的"诡异闪烁"; v1 :key重建动画卡 0)
+const baseSrc = ref('')
+const topSrc = ref('')
+const topOn = ref(false)
 const fadeMs = ref(90)           // 淡化时长 = 帧间隔的 60%
 const failed = ref(false)
 // 缓存破坏: manifest 的 Last-Modified 作版本号, 重新生成形象后帧 URL 自动更新
 // (否则浏览器缓存会把新旧两套帧混着播, 看起来"两个形象交替闪烁")
 const version = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
+let flipTimer: ReturnType<typeof setTimeout> | null = null
 let tick = 0
 
 const frameUrl = (action: string, i: number) =>
@@ -47,17 +49,22 @@ function stop() {
     clearInterval(timer)
     timer = null
   }
+  if (flipTimer) {
+    clearTimeout(flipTimer)
+    flipTimer = null
+  }
 }
 
-/** 新帧进入隐藏层 → 翻转可见性, CSS transition 完成交叉淡化 */
+/** 新帧在顶层淡入 (底层旧帧全程不透明垫底); 完成后底层同步, 顶层淡出 */
 function advance(url: string) {
-  if (aVisible.value) {
-    srcB.value = url
-    aVisible.value = false
-  } else {
-    srcA.value = url
-    aVisible.value = true
-  }
+  if (flipTimer) clearTimeout(flipTimer)
+  topSrc.value = url
+  topOn.value = true
+  flipTimer = setTimeout(() => {
+    baseSrc.value = url
+    topOn.value = false
+    flipTimer = null
+  }, fadeMs.value + 30)
 }
 
 function play(actionName: string) {
@@ -72,9 +79,9 @@ function play(actionName: string) {
   }
   tick = 0
   fadeMs.value = Math.max(60, Math.round(meta.frame_ms * 0.6))
-  srcA.value = frameUrl(actionName, meta.sequence[0])
-  srcB.value = ''
-  aVisible.value = true
+  baseSrc.value = frameUrl(actionName, meta.sequence[0])
+  topSrc.value = ''
+  topOn.value = false
   timer = setInterval(() => {
     tick++
     advance(frameUrl(actionName, meta.sequence[tick % meta.sequence.length]))
@@ -88,9 +95,9 @@ function playOnce(actionName: string) {
   stop()
   tick = 0
   fadeMs.value = Math.max(60, Math.round(meta.frame_ms * 0.6))
-  srcA.value = frameUrl(actionName, meta.sequence[0])
-  srcB.value = ''
-  aVisible.value = true
+  baseSrc.value = frameUrl(actionName, meta.sequence[0])
+  topSrc.value = ''
+  topOn.value = false
   timer = setInterval(() => {
     tick++
     if (tick >= meta.sequence.length) {
@@ -131,22 +138,21 @@ defineExpose({ play, playOnce, availableActions })
 </script>
 
 <template>
-  <!-- 双层交叉淡化: 两个常驻 img 交替淡入淡出 (transition 驱动, 无元素重建) -->
-  <div v-if="!failed && srcA" class="sprite-stack" :class="{ breathing }">
+  <!-- 双层交叉淡化: 底层当前帧全程不透明, 顶层新帧淡入; 完成后底层同步顶层淡出 -->
+  <div v-if="!failed && baseSrc" class="sprite-stack" :class="{ breathing }">
     <img
       class="pet-sprite"
       :class="{ pixelated: manifest?.style === 'pixel' }"
-      :src="srcA"
-      :style="{ opacity: aVisible ? 1 : 0, transitionDuration: `${fadeMs}ms` }"
+      :src="baseSrc"
       alt="宠物"
       draggable="false"
     />
     <img
-      v-if="srcB"
-      class="pet-sprite"
+      v-if="topSrc"
+      class="pet-sprite layer-top"
       :class="{ pixelated: manifest?.style === 'pixel' }"
-      :src="srcB"
-      :style="{ opacity: aVisible ? 0 : 1, transitionDuration: `${fadeMs}ms` }"
+      :src="topSrc"
+      :style="{ opacity: topOn ? 1 : 0, transitionDuration: `${fadeMs}ms` }"
       alt=""
       draggable="false"
     />
@@ -164,6 +170,8 @@ defineExpose({ play, playOnce, availableActions })
   inset: 0;
   width: 100%; height: 100%; object-fit: contain;
   user-select: none; pointer-events: none;
+}
+.layer-top {
   transition: opacity var(--motion-fast) var(--ease-out);
 }
 .pixelated { image-rendering: pixelated; }
