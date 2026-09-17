@@ -26,8 +26,11 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ (e: 'error'): void; (e: 'ready'): void }>()
 
 const manifest = ref<Manifest | null>(null)
-const currentSrc = ref('')
-const prevSrc = ref('')          // 交叉淡化: 上一帧垫在下面
+// 双层交叉淡化 v2: 两个常驻 img 交替切换 opacity (transition),
+// 不用 :key 重建元素+animation —— 实测后者透明度会卡在 0 (元素反复重建动画不前进)
+const srcA = ref('')
+const srcB = ref('')
+const aVisible = ref(true)
 const fadeMs = ref(90)           // 淡化时长 = 帧间隔的 60%
 const failed = ref(false)
 // 缓存破坏: manifest 的 Last-Modified 作版本号, 重新生成形象后帧 URL 自动更新
@@ -46,6 +49,17 @@ function stop() {
   }
 }
 
+/** 新帧进入隐藏层 → 翻转可见性, CSS transition 完成交叉淡化 */
+function advance(url: string) {
+  if (aVisible.value) {
+    srcB.value = url
+    aVisible.value = false
+  } else {
+    srcA.value = url
+    aVisible.value = true
+  }
+}
+
 function play(actionName: string) {
   stop()
   const meta = manifest.value?.actions[actionName]
@@ -58,12 +72,12 @@ function play(actionName: string) {
   }
   tick = 0
   fadeMs.value = Math.max(60, Math.round(meta.frame_ms * 0.6))
-  prevSrc.value = ''
-  currentSrc.value = frameUrl(actionName, meta.sequence[0])
+  srcA.value = frameUrl(actionName, meta.sequence[0])
+  srcB.value = ''
+  aVisible.value = true
   timer = setInterval(() => {
     tick++
-    prevSrc.value = currentSrc.value
-    currentSrc.value = frameUrl(actionName, meta.sequence[tick % meta.sequence.length])
+    advance(frameUrl(actionName, meta.sequence[tick % meta.sequence.length]))
   }, meta.frame_ms)
 }
 
@@ -74,16 +88,16 @@ function playOnce(actionName: string) {
   stop()
   tick = 0
   fadeMs.value = Math.max(60, Math.round(meta.frame_ms * 0.6))
-  prevSrc.value = ''
-  currentSrc.value = frameUrl(actionName, meta.sequence[0])
+  srcA.value = frameUrl(actionName, meta.sequence[0])
+  srcB.value = ''
+  aVisible.value = true
   timer = setInterval(() => {
     tick++
     if (tick >= meta.sequence.length) {
       play('idle')
       return
     }
-    prevSrc.value = currentSrc.value
-    currentSrc.value = frameUrl(actionName, meta.sequence[tick])
+    advance(frameUrl(actionName, meta.sequence[tick]))
   }, meta.frame_ms)
 }
 
@@ -117,23 +131,23 @@ defineExpose({ play, playOnce, availableActions })
 </script>
 
 <template>
-  <!-- 双层交叉淡化: 新帧淡入盖住旧帧, 消除帧动画硬切换的卡顿感 (2026-09-12) -->
-  <div v-if="!failed && currentSrc" class="sprite-stack" :class="{ breathing }">
+  <!-- 双层交叉淡化: 两个常驻 img 交替淡入淡出 (transition 驱动, 无元素重建) -->
+  <div v-if="!failed && srcA" class="sprite-stack" :class="{ breathing }">
     <img
-      v-if="prevSrc && prevSrc !== currentSrc"
-      class="pet-sprite layer-under"
+      class="pet-sprite"
       :class="{ pixelated: manifest?.style === 'pixel' }"
-      :src="prevSrc"
-      alt=""
+      :src="srcA"
+      :style="{ opacity: aVisible ? 1 : 0, transitionDuration: `${fadeMs}ms` }"
+      alt="宠物"
       draggable="false"
     />
     <img
-      :key="currentSrc"
-      class="pet-sprite layer-over"
+      v-if="srcB"
+      class="pet-sprite"
       :class="{ pixelated: manifest?.style === 'pixel' }"
-      :src="currentSrc"
-      :style="{ animationDuration: `${fadeMs}ms` }"
-      alt="宠物"
+      :src="srcB"
+      :style="{ opacity: aVisible ? 0 : 1, transitionDuration: `${fadeMs}ms` }"
+      alt=""
       draggable="false"
     />
   </div>
@@ -150,13 +164,7 @@ defineExpose({ play, playOnce, availableActions })
   inset: 0;
   width: 100%; height: 100%; object-fit: contain;
   user-select: none; pointer-events: none;
-}
-.layer-over {
-  animation: frame-fade var(--motion-fast) var(--ease-out);
-}
-@keyframes frame-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  transition: opacity var(--motion-fast) var(--ease-out);
 }
 .pixelated { image-rendering: pixelated; }
 .breathing { animation: sprite-breathe 2.8s ease-in-out infinite; }
