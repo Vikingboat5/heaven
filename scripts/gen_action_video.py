@@ -40,7 +40,7 @@ def main() -> None:
         generate_video(first, last if last.exists() else None, prompt, mp4)
         print(f"[{action}] 采帧入库...", flush=True)
         cut_video(pet_id, action, mp4)
-        print(f"[{action}] 完成 ✓", flush=True)
+        print(f"[{action}] 完成", flush=True)
 
     print("全部动作处理完毕")
 

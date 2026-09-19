@@ -30,30 +30,46 @@ def _key() -> str:
     return key
 
 
-def _api(method: str, path: str, payload: dict | None = None) -> dict:
-    req = urllib.request.Request(
-        f"{BASE}{path}",
-        data=json.dumps(payload).encode() if payload else None,
-        headers={"Authorization": f"Bearer {_key()}", "Content-Type": "application/json"},
-        method=method,
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        raise AtlasVideoError(f"{e.code}: {e.read().decode(errors='replace')[:300]}")
+def _api(method: str, path: str, payload: dict | None = None, retries: int = 2) -> dict:
+    last = None
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(
+            f"{BASE}{path}",
+            data=json.dumps(payload).encode() if payload else None,
+            headers={
+                "Authorization": f"Bearer {_key()}",
+                "Content-Type": "application/json",
+                # Cloudflare 1010 反爬: 裸 urllib 会被拦, 需要正常 UA
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) petparadise-pipeline/1.0",
+                "Accept": "application/json",
+            },
+            method=method,
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=180) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            raise AtlasVideoError(f"{e.code}: {e.read().decode(errors='replace')[:300]}")
+        except Exception as e:  # 网络抖动/SSL EOF: 重试
+            last = e
+            time.sleep(3 * (attempt + 1))
+    raise AtlasVideoError(f"网络错误(重试{retries}次): {last}")
 
 
 def _to_data_uri(png_path: Path) -> str:
-    """PNG(带透明) → 白底铺平 → base64 data URI (视频模型需要纯白背景)"""
+    """PNG(带透明) → 白底铺平 → 缩到 768px → base64 data URI
+    (原尺寸 2048 的 base64 有 ~4MB, 单 POST 会 SSL EOF; 480p 视频 768 引导图绰绰有余)"""
     from PIL import Image
     img = Image.open(png_path).convert("RGBA")
+    if max(img.size) > 768:
+        ratio = 768 / max(img.size)
+        img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
     bg = Image.new("RGB", img.size, (255, 255, 255))
     bg.paste(img, (0, 0), img)
     import io
     buf = io.BytesIO()
-    bg.save(buf, format="PNG")
-    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+    bg.save(buf, format="JPEG", quality=88)  # JPEG 更小 (无透明需求了)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
 def generate_video(first_frame: Path, last_frame: Path | None, prompt: str,

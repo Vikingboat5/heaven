@@ -55,10 +55,44 @@ def gen_frame(prompt: str, ref: str, out: Path) -> None:
     img.save(out)
 
 
+def gen_strip(action: str, spec: dict, appearance: str, ref: str, out_dir: Path) -> None:
+    """条带模式 (2026-09-19 拍板): 一次生图出"双帧条带"(2列1行), 从中线切开 = 首帧+尾帧。
+    同一次生成 → 两帧角色一致性天然锁定, 且调用减半。"""
+    prompt = (
+        f"一张游戏角色双帧对比图, 2列1行均匀排列同一角色的两个连续动作关键帧: "
+        f"左帧: {spec['first']}; 右帧: {spec['last']}。"
+        f"角色是{appearance}, 两帧毛色长相画风完全一致、大小一致、间距均匀互不重叠, "
+        f"{STYLE}, 纯白色背景, 无阴影, 无文字, 无网格线无边框"
+    )
+    payload = {"model": MODEL, "prompt": prompt, "size": "2048x2048", "response_format": "url", "image": ref}
+    req = urllib.request.Request(
+        f"{BASE}/images/generations",
+        data=json.dumps(payload).encode(),
+        headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=180) as r:
+        url = json.loads(r.read())["data"][0]["url"]
+    raw = out_dir / f"{action}_strip_raw.jpg"
+    download(url, raw)
+    img = Image.open(raw)
+    w, h = img.size
+    for i, phase in enumerate(("first", "last")):
+        cell = img.crop((i * w // 2, 0, (i + 1) * w // 2, h))
+        cut = cutout_dominant_bg(cell)
+        bbox = cut.getchannel("A").getbbox()
+        if bbox:
+            cut = cut.crop(bbox)
+        cut.save(out_dir / f"{action}_{phase}.png")
+    print(f"  {action}: 条带切分完成 (first/last)", flush=True)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("pet_id", type=int)
     ap.add_argument("--actions", default="")  # 逗号分隔, 默认全套
+    ap.add_argument("--strip", action="store_true", help="条带模式: 一次生图出双帧再切开 (默认开)")
+    ap.add_argument("--no-strip", dest="strip", action="store_false")
+    ap.set_defaults(strip=True)
     args = ap.parse_args()
 
     db = SessionLocal()
@@ -79,6 +113,16 @@ def main() -> None:
 
     for action, spec in actions.items():
         if action not in only:
+            continue
+        if args.strip:
+            # 条带模式: 一次生图出双帧 (角色一致性锁定, 调用减半)
+            if (out_dir / f"{action}_first.png").exists() and (out_dir / f"{action}_last.png").exists():
+                print(f"  跳过已有 {action}", flush=True)
+            else:
+                print(f"  生成 {action} 条带...", flush=True)
+                gen_strip(action, spec, appearance, ref, out_dir)
+            (out_dir / f"{action}.txt").write_text(
+                spec["video_prompt"] + ", 纯白背景", encoding="utf-8")
             continue
         for phase in ("first", "last"):
             out = out_dir / f"{action}_{phase}.png"
