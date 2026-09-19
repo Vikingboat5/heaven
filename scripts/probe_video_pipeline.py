@@ -48,7 +48,7 @@ def main() -> None:
     ref = "data:image/png;base64," + base64.b64encode(PET_FRAME.read_bytes()).decode()
     prompt = (
         "纯白背景, 参考图中的小狐狸安静地坐着, 蓬松的大尾巴轻轻左右摆动, 偶尔眨一下眼睛, "
-        "镜头固定不动, 动作循环流畅, 无其他元素 --ratio 1:1 --duration 5"
+        "镜头固定不动, 动作循环流畅, 无其他元素 --ratio 1:1 --duration 3"  # 3s 精简档 (spec §6)
     )
     print("创建视频任务...", flush=True)
     task = api("POST", "/contents/generations/tasks", {
