@@ -81,14 +81,17 @@ FRAME_MS = 90
 CANVAS = 512
 
 
-def main() -> None:
-    print(f"读取 {SRC.name}...", flush=True)
-    vid = iio.imread(SRC)
+def cut_video(pet_id: int, action: str, src: Path,
+              sample_n: int = SAMPLE_N, frame_ms: int = FRAME_MS) -> None:
+    """视频 → 帧序列 → manifest 合并 (可被 gen_action_video.py 复用)"""
+    print(f"读取 {src.name}...", flush=True)
+    vid = iio.imread(src)
     total = vid.shape[0]
-    idxs = [round(i * (total - 1) / (SAMPLE_N - 1)) for i in range(SAMPLE_N)]
-    print(f"总 {total} 帧, 采 {SAMPLE_N} 帧", flush=True)
+    idxs = [round(i * (total - 1) / (sample_n - 1)) for i in range(sample_n)]
+    print(f"总 {total} 帧, 采 {sample_n} 帧", flush=True)
 
-    frames_dir = PET_DIR / "frames"
+    pet_dir = ROOT / "backend" / "static" / "pets" / str(pet_id)
+    frames_dir = pet_dir / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
     frames = []
     for out_i, fi in enumerate(idxs):
@@ -102,20 +105,20 @@ def main() -> None:
         img = img.resize((max(1, int(img.width * ratio)), max(1, int(img.height * ratio))), Image.LANCZOS)
         canvas = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
         canvas.paste(img, ((CANVAS - img.width) // 2, CANVAS - img.height - 30), img)
-        canvas.save(frames_dir / f"{ACTION}_{out_i}.png")
+        canvas.save(frames_dir / f"{action}_{out_i}.png")
         frames.append(canvas)
 
     # manifest 写入该动作 (幂等: 读现有 manifest 合并)
     import json
-    mpath = PET_DIR / "manifest.json"
+    mpath = pet_dir / "manifest.json"
     manifest = json.loads(mpath.read_text(encoding="utf-8")) if mpath.exists() else {
-        "pet_id": PET_ID, "style": "video", "actions": {}, "qc": {}}
-    manifest["actions"][ACTION] = {
-        "frames": SAMPLE_N,
-        "sequence": list(range(SAMPLE_N)),
-        "frame_ms": FRAME_MS,
+        "pet_id": pet_id, "style": "video", "actions": {}, "qc": {}}
+    manifest["actions"][action] = {
+        "frames": sample_n,
+        "sequence": list(range(sample_n)),
+        "frame_ms": frame_ms,
     }
-    manifest.setdefault("qc", {})[ACTION] = {"source": str(SRC.name), "sampled": SAMPLE_N}
+    manifest.setdefault("qc", {})[action] = {"source": str(src.name), "sampled": sample_n}
     mpath.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # 目检: 拼图 + GIF
@@ -127,16 +130,16 @@ def main() -> None:
         cell = Image.new("RGB", (170, 170), BG)
         cell.paste(t, (0, 0), t)
         grid.paste(cell, ((i % cols) * 170, (i // cols) * 170))
-    grid.save(PET_DIR / f"contact_{ACTION}.png")
+    grid.save(pet_dir / f"contact_{action}.png")
     rgb = []
     for f in frames:
         bg = Image.new("RGB", f.size, BG)
         bg.paste(f, (0, 0), f)
         rgb.append(bg.resize((256, 256), Image.LANCZOS))
-    rgb[0].save(PET_DIR / f"preview_{ACTION}.gif", save_all=True, append_images=rgb[1:], duration=FRAME_MS, loop=0)
-    print(f"完成: {SAMPLE_N} 帧写入 {frames_dir}, manifest 已更新")
-    print(f"目检: {PET_DIR / f'contact_{ACTION}.png'} / preview_{ACTION}.gif")
+    rgb[0].save(pet_dir / f"preview_{action}.gif", save_all=True, append_images=rgb[1:], duration=frame_ms, loop=0)
+    print(f"完成: {sample_n} 帧写入 {frames_dir}, manifest 已更新")
+    print(f"目检: {pet_dir / f'contact_{action}.png'} / preview_{action}.gif")
 
 
-if __name__ == "__main__":
-    main()
+def main() -> None:
+    cut_video(PET_ID, ACTION, SRC)

@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     # 生图模式: live=调用 Ark 生图管线; reuse=复用素材库已有形象(生图套餐不可用时的临时方案)
     petgen_mode: str = "live"
 
+    # 生视频 (2026-09-12: AtlasCloud seedance-2.0-mini, 首尾帧 i2v; key 仅本地 .env, gitignore 覆盖)
+    atlascloud_api_key: str = ""
+
     # 成本熔断
     llm_daily_token_budget_per_pet: int = 20000
     llm_daily_token_budget_global: int = 10_000_000
