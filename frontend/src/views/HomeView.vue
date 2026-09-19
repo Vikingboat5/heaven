@@ -96,13 +96,15 @@ async function load() {
   }
 }
 
-/** 回端检测: 推进旅行状态机 (归来→信封 / 出门→提示 / 旅行中→空房) */
+/** 回端检测: 推进旅行状态机 (归来→信封+挥手问候 / 出门→提示 / 旅行中→空房) */
 async function checkReturn() {
   try {
     const r = await api.checkAdventure()
     if (r.event === 'returned' && r.log) {
       letter.value = r.log // H3: 只出现信封, 不自动弹窗
       letterOpen.value = false
+      // 归来问候: 精灵挂载后播一次 wave (动画管道 spec §2, 情绪峰值)
+      setTimeout(() => spriteRef.value?.playOnce('wave'), 800)
     } else if (r.event === 'left') {
       showToast(`${pet.value?.name ?? '它'}出门旅行啦`)
     }
@@ -112,6 +114,14 @@ async function checkReturn() {
   } catch {
     // 静默: 检测失败不影响主页
   }
+}
+
+/** 触摸响应 (spec §2 P1): 点宠物 → 优先 petted(被摸), 没有则 wave */
+function petPet() {
+  const s = spriteRef.value
+  if (!s) return
+  const actions = s.availableActions()
+  s.playOnce(actions.includes('petted') ? 'petted' : 'wave')
 }
 
 /** H4: 拆开信封 */
@@ -540,6 +550,8 @@ function itemNameById(itemId: string): string {
     <div v-if="phase === 'pet' && spriteReady && pet && !pet.away" class="sprite-layer">
       <!-- action 优先 video_idle (视频采帧), 没有该动作的宠物自动回退 idle -->
       <PetSprite ref="spriteRef" :pet-id="pet.id" action="video_idle" />
+      <!-- 触摸响应热区 (spec §2 P1): 点宠物=摸它 -->
+      <button class="pet-hit" aria-label="摸摸它" @click="petPet"></button>
     </div>
 
     <!-- H3: 归来便签信 —— AI 手绘便签纸钉在树旁, 点击才拆开 -->
@@ -754,6 +766,17 @@ function itemNameById(itemId: string): string {
   height: auto;
   display: block;
   overflow: visible;
+}
+
+/* 触摸热区: 盖在宠物身上 (父层 pointer-events:none, 这里单独开) */
+.pet-hit {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  pointer-events: auto;
+  border-radius: 50%;
 }
 
 /* 生成形象层: 帧动画宠物 (巢位锚点, 底部对齐 = 脚踩草地; H2: 旅行中不显示) */
