@@ -17,6 +17,59 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app.services.petgen.pipeline import cutout_dominant_bg  # noqa: E402
+from app.services.petgen.pipeline import _decontaminate  # noqa: E402  # 边缘去白边(复用精灵表工艺)
+
+
+def remove_ground_shadow(img: Image.Image) -> Image.Image:
+    """去掉"脚下的椭圆阴影" (实测阴影是浅灰紫 min~177, 不是近白):
+    内容包围盒底部 12% 区域内, 浅色(min>150)且宽(>30%内容宽)的组件判为影子删除。
+    狐狸的爪子是深色 → 保留; 白尾尖在中上部 → 不受影响。"""
+    a = np.array(img)  # RGBA 副本
+    alpha = a[..., 3]
+    if not alpha.any():
+        return img
+    ys, xs = np.where(alpha > 0)
+    y0, y1 = int(ys.min()), int(ys.max())
+    h = max(1, y1 - y0)
+    w_content = int(xs.max()) - int(xs.min()) + 1
+    bottom = y0 + h * 0.88  # 底部 12%
+    light = (a[..., :3].min(axis=2) > 150) & (alpha > 0)
+    light[: int(bottom), :] = False  # 只看底部
+    from scipy import ndimage
+    lbl, n = ndimage.label(light)
+    for i in range(1, n + 1):
+        ys2, xs2 = np.where(lbl == i)
+        w2 = int(xs2.max()) - int(xs2.min()) + 1
+        if w2 > w_content * 0.3:
+            a[..., 3][lbl == i] = 0
+    # 脚缝间残留的小块浅色影子: 底部区域的浅色像素一律删除 (狐狸脚底是深色, 底部无合法浅色)
+    a[..., 3][(a[..., :3].min(axis=2) > 150) & (np.arange(a.shape[0]) > bottom)[:, None] & (alpha > 0)] = 0
+    # 影子的深色描边环/发丝线: 底部区域的宽(>30%)且扁(<14px)组件, 或 1-2px 发丝横线(w>40px)
+    alpha2 = a[..., 3]
+    band = np.zeros_like(alpha2, dtype=bool)
+    band[int(bottom):, :] = alpha2[int(bottom):, :] > 0
+    lbl2, n2 = ndimage.label(band)
+    for i in range(1, n2 + 1):
+        ys2, xs2 = np.where(lbl2 == i)
+        w2 = int(xs2.max()) - int(xs2.min()) + 1
+        h2 = int(ys2.max()) - int(ys2.min()) + 1
+        if (w2 > w_content * 0.3 and h2 < 14) or (h2 <= 2 and w2 > 40):
+            a[..., 3][lbl2 == i] = 0
+    # 影子描边和脚爪连通时的兜底: 最底 3 行只保留脚爪横向范围(±4px)内的像素
+    # (实测: 影子描边与脚爪连通成一个组件, 组件规则无法分离, 只能按脚的范围裁)
+    alpha3 = a[..., 3]
+    ys3, _ = np.where(alpha3 > 0)
+    if len(ys3):
+        y1b = int(ys3.max())
+        feet_zone = alpha3[max(0, y1b - 14): y1b - 3]
+        cols = np.where(feet_zone.any(axis=0))[0]
+        if len(cols):
+            keep_l, keep_r = int(cols.min()) - 4, int(cols.max()) + 5
+            tail = alpha3[y1b - 3: y1b + 1]
+            mask = np.zeros_like(tail)
+            mask[:, keep_l:keep_r] = True
+            a[..., 3][y1b - 3: y1b + 1] = np.where(mask, tail, 0)
+    return Image.fromarray(a, "RGBA")
 
 PET_ID = int(sys.argv[1]) if len(sys.argv) > 1 else 28
 ACTION = sys.argv[2] if len(sys.argv) > 2 else "video_idle"
@@ -40,6 +93,8 @@ def main() -> None:
     frames = []
     for out_i, fi in enumerate(idxs):
         img = cutout_dominant_bg(Image.fromarray(vid[fi]))
+        img = Image.fromarray(_decontaminate(np.array(img)), "RGBA")  # 边缘去白边
+        img = remove_ground_shadow(img)                               # 去脚下白影
         bbox = img.getchannel("A").getbbox()
         if bbox:
             img = img.crop(bbox)
