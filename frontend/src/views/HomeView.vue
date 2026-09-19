@@ -536,7 +536,8 @@ function itemNameById(itemId: string): string {
 
     <!-- 生成形象层: 帧动画宠物 (巢穴位置); H2: 旅行中不显示 (空房) -->
     <div v-if="phase === 'pet' && spriteReady && pet && !pet.away" class="sprite-layer">
-      <PetSprite ref="spriteRef" :pet-id="pet.id" action="idle" />
+      <!-- action 优先 video_idle (视频采帧), 没有该动作的宠物自动回退 idle -->
+      <PetSprite ref="spriteRef" :pet-id="pet.id" action="video_idle" />
     </div>
 
     <!-- H3: 归来便签信 —— AI 手绘便签纸钉在树旁, 点击才拆开 -->

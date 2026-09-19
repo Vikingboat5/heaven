@@ -57,6 +57,10 @@ function stop() {
 
 /** 新帧在顶层淡入 (底层旧帧全程不透明垫底); 完成后底层同步, 顶层淡出 */
 function advance(url: string) {
+  if (fadeMs.value <= 0) {   // 帧间隔密的动作(视频采帧)直接硬切, 不淡化
+    baseSrc.value = url
+    return
+  }
   if (flipTimer) clearTimeout(flipTimer)
   topSrc.value = url
   topOn.value = true
@@ -65,6 +69,12 @@ function advance(url: string) {
     topOn.value = false
     flipTimer = null
   }, fadeMs.value + 30)
+}
+
+/** 淡化策略: 稀疏帧(精灵表≥120ms)给短淡化; 密集帧(视频采帧)硬切 */
+function fadeFor(frameMs: number): number {
+  if (frameMs < 120) return 0
+  return Math.min(60, Math.max(25, Math.round(frameMs * 0.35)))
 }
 
 function play(actionName: string) {
@@ -78,7 +88,7 @@ function play(actionName: string) {
     return
   }
   tick = 0
-  fadeMs.value = Math.max(60, Math.round(meta.frame_ms * 0.6))
+  fadeMs.value = fadeFor(meta.frame_ms)
   baseSrc.value = frameUrl(actionName, meta.sequence[0])
   topSrc.value = ''
   topOn.value = false
@@ -94,14 +104,14 @@ function playOnce(actionName: string) {
   if (!meta || actionName === 'idle') return
   stop()
   tick = 0
-  fadeMs.value = Math.max(60, Math.round(meta.frame_ms * 0.6))
+  fadeMs.value = fadeFor(meta.frame_ms)
   baseSrc.value = frameUrl(actionName, meta.sequence[0])
   topSrc.value = ''
   topOn.value = false
   timer = setInterval(() => {
     tick++
     if (tick >= meta.sequence.length) {
-      play('idle')
+      play(props.action)   // 回到配置的默认动作 (不一定是 idle)
       return
     }
     advance(frameUrl(actionName, meta.sequence[tick]))
