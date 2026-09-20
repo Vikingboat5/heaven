@@ -81,9 +81,51 @@ FRAME_MS = 90
 CANVAS = 512
 
 
+def _robust_content_bbox(img: Image.Image) -> tuple[int, int, int, int] | None:
+    """稳健内容包围盒: alpha>24 且只保留 ≥最大组件 1.5% 的组件 (碎屑不撑包围盒)
+    对齐 fix_asset_bboxes.py 的工艺——alpha 羽化散点会让朴素 getbbox 失效"""
+    from scipy import ndimage
+    a = np.asarray(img)
+    mask = a[..., 3] > 24
+    if not mask.any():
+        return None
+    lbl, n = ndimage.label(mask)
+    if n == 0:
+        return None
+    sizes = np.bincount(lbl.ravel())[1:]
+    keep = np.zeros_like(mask)
+    biggest = sizes.max()
+    for i in range(1, n + 1):
+        if sizes[i - 1] >= max(100, biggest * 0.015):
+            keep[lbl == i] = True
+    ys, xs = np.where(keep)
+    return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
+
+
+def _drop_specks(img: Image.Image) -> Image.Image:
+    """删除前景小碎屑: 只保留 ≥最大组件 1.5% 的组件 (视频抠图后的残留碎点)"""
+    from scipy import ndimage
+    a = np.array(img)
+    mask = a[..., 3] > 24
+    if not mask.any():
+        return img
+    lbl, n = ndimage.label(mask)
+    sizes = np.bincount(lbl.ravel())[1:]
+    biggest = sizes.max()
+    keep = np.zeros_like(mask)
+    for i in range(1, n + 1):
+        if sizes[i - 1] >= max(100, biggest * 0.015):
+            keep[lbl == i] = True
+    a[..., 3] = np.where(keep, a[..., 3], 0)
+    return Image.fromarray(a, "RGBA")
+
+
 def cut_video(pet_id: int, action: str, src: Path,
               sample_n: int = SAMPLE_N, frame_ms: int = FRAME_MS) -> None:
-    """视频 → 帧序列 → manifest 合并 (可被 gen_action_video.py 复用)"""
+    """视频 → 帧序列 → manifest 合并 (可被 gen_action_video.py 复用)
+    尺寸/位置统一锚点 (2026-09-19): 以 video_idle_0 为基准, 各动作用"帧的中位数包围盒"
+    对齐到同一身高/同一水平中心/同一脚底线, 消除动作切换时的忽大忽小"""
+    import json
     print(f"读取 {src.name}...", flush=True)
     vid = iio.imread(src)
     total = vid.shape[0]
@@ -93,23 +135,55 @@ def cut_video(pet_id: int, action: str, src: Path,
     pet_dir = ROOT / "backend" / "static" / "pets" / str(pet_id)
     frames_dir = pet_dir / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
-    frames = []
-    for out_i, fi in enumerate(idxs):
+
+    # 第一遍: 抠图+净化+去碎屑, 收集稳健包围盒
+    cleaned: list[tuple[Image.Image, tuple[int, int, int, int]]] = []
+    for fi in idxs:
         img = cutout_dominant_bg(Image.fromarray(vid[fi]))
         img = Image.fromarray(_decontaminate(np.array(img)), "RGBA")  # 边缘去白边
         img = remove_ground_shadow(img)                               # 去脚下白影
-        bbox = img.getchannel("A").getbbox()
+        img = _drop_specks(img)                                       # 去碎屑
+        bbox = _robust_content_bbox(img)
         if bbox:
-            img = img.crop(bbox)
-        ratio = min(CANVAS * 0.80 / img.height, CANVAS * 0.86 / img.width)
-        img = img.resize((max(1, int(img.width * ratio)), max(1, int(img.height * ratio))), Image.LANCZOS)
+            cleaned.append((img, bbox))
+
+    # 中位数指标 (稳健包围盒): 排除抬爪/歪头等瞬时姿态对包围盒的影响
+    heights = [b[3] - b[1] for _, b in cleaned]
+    h_min = min(heights)   # 最紧凑姿态 = 身体基准 (抬爪帧会虚增包围盒)
+
+    # 统一身高锚点: 写在 manifest.meta, 第一个视频动作设定, 后续动作全部对齐
+    # (2026-09-19: 修"动作切换狐狸忽大忽小"——按身体最紧凑姿态等比, 不按包围盒中位数)
+    mpath_pre = pet_dir / "manifest.json"
+    if mpath_pre.exists():
+        _m = json.loads(mpath_pre.read_text(encoding="utf-8"))
+    else:
+        _m = {"pet_id": pet_id, "style": "video", "actions": {}, "qc": {}}
+    anchor = _m.get("meta", {}).get("anchor_height")
+    if action == "video_idle" or anchor is None:
+        anchor = int(CANVAS * 0.72)
+        _m.setdefault("meta", {})["anchor_height"] = anchor
+        mpath_pre.write_text(json.dumps(_m, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"  设定身高锚点: {anchor}px", flush=True)
+    else:
+        print(f"  沿用身高锚点: {anchor}px", flush=True)
+    ref_cx = CANVAS / 2
+    ref_bottom = CANVAS - 30
+
+    scale = anchor / h_min
+    frames = []
+    for out_i, (img, bbox) in enumerate(cleaned):
+        # crop 到稳健包围盒再缩放
+        img = img.crop(bbox)
+        img = img.resize((max(1, int(img.width * scale)), max(1, int(img.height * scale))), Image.LANCZOS)
+        # crop 后内容充满小图: 居中x + 底边对锚点
+        px = int(round(ref_cx - img.width / 2))
+        py = int(round(ref_bottom - img.height))
         canvas = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
-        canvas.paste(img, ((CANVAS - img.width) // 2, CANVAS - img.height - 30), img)
+        canvas.paste(img, (px, py), img)
         canvas.save(frames_dir / f"{action}_{out_i}.png")
         frames.append(canvas)
 
     # manifest 写入该动作 (幂等: 读现有 manifest 合并)
-    import json
     mpath = pet_dir / "manifest.json"
     manifest = json.loads(mpath.read_text(encoding="utf-8")) if mpath.exists() else {
         "pet_id": pet_id, "style": "video", "actions": {}, "qc": {}}
@@ -143,3 +217,7 @@ def cut_video(pet_id: int, action: str, src: Path,
 
 def main() -> None:
     cut_video(PET_ID, ACTION, SRC)
+
+
+if __name__ == "__main__":
+    main()
