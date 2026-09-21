@@ -36,6 +36,16 @@ async def lifespan(app: FastAPI):
             "first_discovered_by INTEGER REFERENCES users(id), "
             "first_discovered_at TIMESTAMP)"
         ))
+        # H10 地点记忆卡 (重访连续性, spec §10.5)
+        db.execute(text(
+            "CREATE TABLE IF NOT EXISTS pet_seed_memories ("
+            "pet_id INTEGER REFERENCES pets(id), "
+            "seed_id VARCHAR(64), "
+            "memory TEXT DEFAULT '', "
+            "visit_count INTEGER DEFAULT 0, "
+            "updated_at TIMESTAMP DEFAULT NOW(), "
+            "PRIMARY KEY (pet_id, seed_id))"
+        ))
         db.commit()
         added = item_service.seed_item_states(db)
         migrated = item_service.migrate_all_inventories(db)

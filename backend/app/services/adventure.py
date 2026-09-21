@@ -13,6 +13,7 @@ from __future__ import annotations
 import random
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from ..core import catalog
@@ -128,21 +129,34 @@ def validate_loadout(pet: Pet, loadout: dict) -> str | None:
 
 
 async def _polish_narrative(pet: Pet, seed_def: dict, flavor: str, events: list[dict],
-                            item_ids: list[str] | None = None) -> str:
+                            item_ids: list[str] | None = None,
+                            memory: str | None = None) -> tuple[str, str | None]:
+    """信件润色。返回 (信件, 更新后的记忆卡|None)。
+    H10: 重访时 memory 入 prompt, 同一次调用输出"信件+【记忆】更新卡"(零额外调用)"""
     if not events:
-        return _fallback_narrative(pet.name, events, item_ids)
+        return _fallback_narrative(pet.name, events, item_ids), None
     lines = "\n".join(f"{e['time'][11:16]} {e['text']}" for e in events[:8])
     cast = "；".join(c["desc_words"] for c in seed_def.get("cast", [])) or "无"
     names = _item_names(item_ids or [])
     gifts = "、".join(names) if names else "无"
+    memory_clause = f"你上次来过这里, 当时的记忆: 「{memory}」——可以在信里呼应它(比如老朋友还记得你、故地重游的变化), 但不要照搬上次的描述\n" if memory else ""
+    output_protocol = (
+        "输出格式(严格遵守): 先写信件正文, 然后单独一行写【记忆】, 再写一行不超过80字的记忆卡"
+        "(给下次重访用的线索: 认识了谁/发生了什么/有什么遗憾或约定)。"
+        if memory else
+        "输出格式(严格遵守): 先写信件正文, 然后单独一行写【记忆】, 再写一行不超过80字的记忆卡"
+        "(给下次重访用的线索: 认识了谁/发生了什么/有什么遗憾或约定)。"
+    )
     user_prompt = (
         f"宠物「{pet.name}」的旅行:\n"
         f"背景: {seed_def.get('background', '')} (氛围: {seed_def.get('atmosphere', '')})\n"
         f"出场的角色: {cast}\n"
         f"本趟基调: {catalog.FLAVOR_LABELS.get(flavor, flavor)}\n"
         f"带回给主人的物品: {gifts}\n"
+        f"{memory_clause}"
         f"事件:\n{lines}\n"
-        f"格式: 开头称呼\"主人\", 结尾署名必须是「{pet.name}」, 禁止自取其他名字。"
+        f"格式: 开头称呼\"主人\", 结尾署名必须是「{pet.name}」, 禁止自取其他名字。\n"
+        f"{output_protocol}"
     )
     try:
         result = await gateway.chat(
@@ -150,14 +164,22 @@ async def _polish_narrative(pet: Pet, seed_def: dict, flavor: str, events: list[
              {"role": "user", "content": user_prompt}],
             tier="lite",
             pet_id=str(pet.id),
-            max_tokens=600,
+            max_tokens=700,   # 信件 ~600 + 记忆卡 ~80
             temperature=0.7,
         )
-        narrative = result.content.strip()
-        return narrative if narrative else _fallback_narrative(pet.name, events, item_ids)
+        raw = result.content.strip()
+        if not raw:
+            return _fallback_narrative(pet.name, events, item_ids), None
+        # 解析 信件 + 【记忆】 分隔协议; 解析失败则整段当信件(记日志, 不静默)
+        if "【记忆】" in raw:
+            letter, _, card = raw.partition("【记忆】")
+            card = card.strip().splitlines()[0].strip()[:100] if card.strip() else None
+            return letter.strip(), card
+        print("[adventure] 记忆卡分隔符缺失, 整段当信件")
+        return raw, None
     except Exception as e:
         print(f"[adventure] 日记润色失败, 降级模板: {e}")  # 兜底留痕
-        return _fallback_narrative(pet.name, events, item_ids)
+        return _fallback_narrative(pet.name, events, item_ids), None
 
 
 async def _settle_trip(db: Session, pet: Pet, travel: dict) -> AdventureLog:
@@ -176,8 +198,23 @@ async def _settle_trip(db: Session, pet: Pet, travel: dict) -> AdventureLog:
         seed=f"{pet.hatch_seed}:{pet.id}",
         loadout=pet.loadout or {},
     )
-    narrative = await _polish_narrative(pet, seed_def, result.flavor, result.events,
-                                        item_ids=result.rewards["items"])
+    # H10: 地点记忆卡 —— 重访时带上次记忆进润色 (同一次调用顺带更新, 零额外 LLM 调用)
+    mem_row = db.execute(text(
+        "SELECT memory, visit_count FROM pet_seed_memories WHERE pet_id = :p AND seed_id = :s"
+    ), {"p": pet.id, "s": seed_def["id"]}).fetchone()
+    memory = mem_row[0] if mem_row and mem_row[0] else None
+    narrative, new_memory = await _polish_narrative(pet, seed_def, result.flavor, result.events,
+                                                    item_ids=result.rewards["items"], memory=memory)
+    # 记忆卡 upsert: 新卡优先, 没有新卡则保留旧卡只累加次数 (用 Python 时间, 兼容 SQLite 测试库)
+    card = new_memory or (mem_row[0] if mem_row else "")
+    now_iso = datetime.utcnow().isoformat(timespec="seconds")
+    db.execute(text(
+        "INSERT INTO pet_seed_memories (pet_id, seed_id, memory, visit_count, updated_at) "
+        "VALUES (:p, :s, :m, 1, :t) "
+        "ON CONFLICT (pet_id, seed_id) DO UPDATE SET "
+        "memory = CASE WHEN :m <> '' THEN :m ELSE pet_seed_memories.memory END, "
+        "visit_count = pet_seed_memories.visit_count + 1, updated_at = :t"
+    ), {"p": pet.id, "s": seed_def["id"], "m": card, "t": now_iso})
 
     # ---- 物品结算: 收获入包(is_new) + 首发现回填 + 行囊消耗/交换扣减 ----
     gained: list[dict] = []

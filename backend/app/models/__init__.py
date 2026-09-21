@@ -99,6 +99,17 @@ class FactMemory(Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
 
+class PetSeedMemory(Base):
+    """H10 地点记忆卡 (2026-09-19): 宠物×地点的滚动记忆, 重访时进润色 prompt (token O(1))"""
+    __tablename__ = "pet_seed_memories"
+
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id"), primary_key=True)
+    seed_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    memory: Mapped[str] = mapped_column(Text, default="")
+    visit_count: Mapped[int] = mapped_column(default=0)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
 class ItemState(Base):
     """物品发现状态 (v1.2): 静态定义在 content/items.json, 本表只存运行时回填的首发现状态"""
     __tablename__ = "item_states"

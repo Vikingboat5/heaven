@@ -10,9 +10,10 @@ from backend.app.services import adventure, items as item_service
 
 @pytest.fixture(autouse=True)
 def _noop_polish(monkeypatch):
-    """日记润色不触网: 直接降级模板 (LLM 措辞由 prompt 单测另行保证)"""
-    async def fallback(pet, seed_def, flavor, events, item_ids=None):
-        return adventure._fallback_narrative(pet.name, events, item_ids)
+    """日记润色不触网: 直接降级模板 (LLM 措辞由 prompt 单测另行保证)
+    返回 (信件, None) — H10: 无 LLM 时记忆卡不更新"""
+    async def fallback(pet, seed_def, flavor, events, item_ids=None, memory=None):
+        return adventure._fallback_narrative(pet.name, events, item_ids), None
 
     monkeypatch.setattr(adventure, "_polish_narrative", fallback)
 
@@ -99,6 +100,40 @@ async def test_settle_trip_full_flow(db):
     for it in log["rewards"]["items"]:
         state = db.get(models.ItemState, it["item_id"])
         assert state is not None and state.first_discovered_by == u.id
+
+
+@pytest.mark.asyncio
+async def test_revisit_memory_card(db, monkeypatch):
+    """H10: 同一地点第二次旅行, 润色收到上次记忆卡; 卡片 upsert + visit_count 递增"""
+    item_service.seed_item_states(db)
+    u, pet = _make_pet(db)
+    pet.hatch_seed = _hatch_seed_with_items(pet.id)
+
+    seen: list = []
+
+    async def spy_polish(pet, seed_def, flavor, events, item_ids=None, memory=None):
+        seen.append(memory)
+        return "信件正文", "上次认识了捣药的玉兔"
+
+    monkeypatch.setattr(adventure, "_polish_narrative", spy_polish)
+
+    # 第一次旅行: 无记忆, 结算后生成卡
+    _force_due(pet)
+    db.commit()
+    r1 = await adventure.check_and_simulate(db, u)
+    assert r1["event"] == "returned"
+    assert seen[0] is None
+    row = db.get(models.PetSeedMemory, (pet.id, "myth:moon_palace"))
+    assert row is not None and row.memory == "上次认识了捣药的玉兔" and row.visit_count == 1
+
+    # 第二次同地旅行: 润色收到上次记忆
+    _force_due(pet)
+    db.commit()
+    r2 = await adventure.check_and_simulate(db, u)
+    assert r2["event"] == "returned"
+    assert seen[1] == "上次认识了捣药的玉兔"
+    db.refresh(row)
+    assert row.visit_count == 2
 
 
 def test_first_discovery_not_overwritten(db):
