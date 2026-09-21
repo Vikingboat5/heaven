@@ -548,8 +548,8 @@ function itemNameById(itemId: string): string {
 
     <!-- 生成形象层: 帧动画宠物 (巢穴位置); H2: 旅行中不显示 (空房) -->
     <div v-if="phase === 'pet' && spriteReady && pet && !pet.away" class="sprite-layer">
-      <!-- action 优先 video_idle (视频采帧), 没有该动作的宠物自动回退 idle -->
-      <PetSprite ref="spriteRef" :pet-id="pet.id" action="video_idle" />
+      <!-- idle = 视频原地循环 (manifest 只保留视频源动作 idle/wave/petted) -->
+      <PetSprite ref="spriteRef" :pet-id="pet.id" action="idle" />
       <!-- 触摸响应热区 (spec §2 P1): 点宠物=摸它 -->
       <button class="pet-hit" aria-label="摸摸它" @click="petPet"></button>
     </div>

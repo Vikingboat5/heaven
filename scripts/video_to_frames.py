@@ -184,12 +184,15 @@ def cut_video(pet_id: int, action: str, src: Path,
         frames.append(canvas)
 
     # manifest 写入该动作 (幂等: 读现有 manifest 合并)
+    # 序列 = ping-pong 正放+倒放 (2026-09-20 拍板, 对齐游戏动画设计: 动作"出去再回来",
+    # 天然消循环接缝 + 天然回到待机姿势, 无需首尾帧==同一张图)
     mpath = pet_dir / "manifest.json"
     manifest = json.loads(mpath.read_text(encoding="utf-8")) if mpath.exists() else {
         "pet_id": pet_id, "style": "video", "actions": {}, "qc": {}}
+    sequence = list(range(sample_n)) + list(range(sample_n - 2, 0, -1))
     manifest["actions"][action] = {
         "frames": sample_n,
-        "sequence": list(range(sample_n)),
+        "sequence": sequence,
         "frame_ms": frame_ms,
     }
     manifest.setdefault("qc", {})[action] = {"source": str(src.name), "sampled": sample_n}
