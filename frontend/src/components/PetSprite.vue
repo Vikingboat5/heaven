@@ -58,7 +58,10 @@ function stop() {
 /** 新帧在顶层淡入 (底层旧帧全程不透明垫底); 完成后底层同步, 顶层淡出 */
 function advance(url: string) {
   if (fadeMs.value <= 0) {   // 帧间隔密的动作(视频采帧)直接硬切, 不淡化
+    // 必须取消过渡淡入挂的同步定时器——否则它到点会把画面拉回旧帧(瞬移+闪的真凶)
+    if (flipTimer) { clearTimeout(flipTimer); flipTimer = null }
     baseSrc.value = url
+    topOn.value = false
     return
   }
   if (flipTimer) clearTimeout(flipTimer)
