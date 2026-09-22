@@ -103,12 +103,12 @@ def _robust_content_bbox(img: Image.Image) -> tuple[int, int, int, int] | None:
 
 
 def _head_cx(img: Image.Image, bbox: tuple[int, int, int, int]) -> float:
-    """头/躯干的水平质心 (锚点!): 包围盒上 55% 区域的前景像素水平均值。
+    """头/躯干的水平质心 (锚点!): 包围盒上 30% 区域(头+耳)的前景像素水平均值。
     为什么不用 bbox 中心: 尾巴摆动会移动 bbox 中心 → 按它居中狐狸的身体就会滑(飘逸根因)。
-    头/躯干在尾巴摆动时基本不动, 用它当锚点身体纹丝不动。"""
+    为什么不用上 55%: 那会把会晃的肩膀/身体算进来, 只取头+耳最稳。"""
     a = np.asarray(img)
     x0, y0, x1, y1 = bbox
-    head_h = max(1, int((y1 - y0) * 0.55))
+    head_h = max(1, int((y1 - y0) * 0.30))
     mask = a[y0: y0 + head_h, x0: x1, 3] > 24
     ys, xs = np.where(mask)
     if len(xs) == 0:
