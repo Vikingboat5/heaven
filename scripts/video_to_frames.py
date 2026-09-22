@@ -102,6 +102,20 @@ def _robust_content_bbox(img: Image.Image) -> tuple[int, int, int, int] | None:
     return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
 
 
+def _head_cx(img: Image.Image, bbox: tuple[int, int, int, int]) -> float:
+    """头/躯干的水平质心 (锚点!): 包围盒上 55% 区域的前景像素水平均值。
+    为什么不用 bbox 中心: 尾巴摆动会移动 bbox 中心 → 按它居中狐狸的身体就会滑(飘逸根因)。
+    头/躯干在尾巴摆动时基本不动, 用它当锚点身体纹丝不动。"""
+    a = np.asarray(img)
+    x0, y0, x1, y1 = bbox
+    head_h = max(1, int((y1 - y0) * 0.55))
+    mask = a[y0: y0 + head_h, x0: x1, 3] > 24
+    ys, xs = np.where(mask)
+    if len(xs) == 0:
+        return (x0 + x1) / 2
+    return x0 + float(xs.mean())
+
+
 def _drop_specks(img: Image.Image) -> Image.Image:
     """删除前景小碎屑: 只保留 ≥最大组件 1.5% 的组件 (视频抠图后的残留碎点)"""
     from scipy import ndimage
@@ -172,11 +186,12 @@ def cut_video(pet_id: int, action: str, src: Path,
     scale = anchor / h_min
     frames = []
     for out_i, (img, bbox) in enumerate(cleaned):
+        head_rel = _head_cx(img, bbox) - bbox[0]  # 该帧头/躯干在 bbox 内的相对 x
         # crop 到稳健包围盒再缩放
         img = img.crop(bbox)
         img = img.resize((max(1, int(img.width * scale)), max(1, int(img.height * scale))), Image.LANCZOS)
-        # crop 后内容充满小图: 居中x + 底边对锚点
-        px = int(round(ref_cx - img.width / 2))
+        # 头/躯干质心对锚点 x (身体不漂移), 底边对锚点 y (脚踩地)
+        px = int(round(ref_cx - head_rel * scale))
         py = int(round(ref_bottom - img.height))
         canvas = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
         canvas.paste(img, (px, py), img)

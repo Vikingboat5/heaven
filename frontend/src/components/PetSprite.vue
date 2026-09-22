@@ -20,8 +20,8 @@ interface Manifest {
 const props = withDefaults(defineProps<{
   petId: number
   action?: string
-  breathing?: boolean   // CSS 呼吸浮动
-}>(), { action: 'idle', breathing: true })
+  breathing?: boolean   // CSS 呼吸浮动 (视频帧自带微动, 已废弃——叠加会漂)
+}>(), { action: 'idle', breathing: false })
 
 const emit = defineEmits<{ (e: 'error'): void; (e: 'ready'): void }>()
 
