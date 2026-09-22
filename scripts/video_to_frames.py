@@ -136,6 +136,20 @@ def _drop_specks(img: Image.Image) -> Image.Image:
     return Image.fromarray(a, "RGBA")
 
 
+def _feet_y(img: Image.Image, bbox: tuple[int, int, int, int]) -> int:
+    """脚线 = 身体中央列(45%宽)内的内容底边 (排除两侧尾巴尖)
+    2026-09-20 修"点击后上下位移": 锚'剪影底部'锚到的是尾巴尖, idle尾尖垂得低/petted不垂,
+    两个动作的'脚'上下差30px; 锚'脚'(中央列底)才是同一条地面线"""
+    a = np.asarray(img)
+    x0, _, x1, _ = bbox
+    w = x1 - x0
+    cx0 = x0 + int(w * 0.275)
+    cx1 = x0 + int(w * 0.725)
+    col = a[:, cx0:cx1, 3]
+    ys, _ = np.where(col > 24)
+    return int(ys.max()) + 1 if len(ys) else bbox[3]
+
+
 def cut_video(pet_id: int, action: str, src: Path,
               sample_n: int = SAMPLE_N, frame_ms: int = FRAME_MS) -> None:
     """视频 → 帧序列 → manifest 合并 (可被 gen_action_video.py 复用)
@@ -164,8 +178,11 @@ def cut_video(pet_id: int, action: str, src: Path,
             cleaned.append((img, bbox))
 
     # 中位数指标 (稳健包围盒): 排除抬爪/歪头等瞬时姿态对包围盒的影响
-    heights = [b[3] - b[1] for _, b in cleaned]
-    h_min = min(heights)   # 最紧凑姿态 = 身体基准 (抬爪帧会虚增包围盒)
+    # 缩放基准 = 身长 (头顶→脚线, 解剖学参考) 而非"最紧凑姿势的包围盒高"——
+    # 后者因姿势定义不同在各动作间不一致 (2026-09-20 修"点击后上下位移~10px")
+    import statistics
+    body_lens = [(_feet_y(img, b) - b[1]) for img, b in cleaned]
+    med_body_len = statistics.median(body_lens)
 
     # 统一身高锚点: 写在 manifest.meta, 第一个视频动作设定, 后续动作全部对齐
     # (2026-09-19: 修"动作切换狐狸忽大忽小"——按身体最紧凑姿态等比, 不按包围盒中位数)
@@ -185,7 +202,7 @@ def cut_video(pet_id: int, action: str, src: Path,
     ref_cx = CANVAS / 2
     ref_bottom = CANVAS - 30
 
-    scale = anchor / h_min
+    scale = anchor / med_body_len
     # 并集裁剪窗: 全部帧的稳健包围盒取并集, 整个动作共用同一个窗口
     # (逐帧 re-anchor 是漂移和偏移的总根因——帧动画的正确做法是"同一画布注册", 视频自带的位置/摇晃原样保留)
     ux0 = min(b[0] for _, b in cleaned)
@@ -195,20 +212,19 @@ def cut_video(pet_id: int, action: str, src: Path,
 
     # 跨动作注册对齐 (2026-09-20): 以第一个动作(通常是 idle)的"内容落点"为全局锚,
     # 其他动作的整段帧统一平移对齐, 消除"点一下狐狸跳位置"
-    # 落点 = 各帧内容包围盒的中位数中心x/底y (原始坐标), 换算到画布坐标后与锚点对齐
-    import statistics
+    # 落点x = 各帧内容包围盒的中位数中心x; 落点y = 各帧"脚线"(中央列底)的中位数, 统一到 ref_bottom
     med_cx = statistics.median((b[0] + b[2]) / 2 for _, b in cleaned)
-    med_bot = statistics.median(b[3] for _, b in cleaned)
+    med_feet = statistics.median(_feet_y(img, b) for img, b in cleaned)
     canvas_cx = ref_cx + (med_cx - (ux0 + ux1) / 2) * scale
-    canvas_bot = ref_bottom + (med_bot - uy1) * scale
     meta = _m.setdefault("meta", {})
-    if meta.get("anchor_cx") is None or meta.get("anchor_bot") is None:
+    if meta.get("anchor_cx") is None:
         meta["anchor_cx"] = round(canvas_cx, 1)
-        meta["anchor_bot"] = round(canvas_bot, 1)
         mpath_pre.write_text(json.dumps(_m, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"  设定注册落点: cx={meta['anchor_cx']} bot={meta['anchor_bot']}", flush=True)
+        print(f"  设定注册中心x: {meta['anchor_cx']}", flush=True)
     dx = meta["anchor_cx"] - canvas_cx
-    dy = meta["anchor_bot"] - canvas_bot
+    # 脚线直接对 ref_bottom (所有动作同一条地面线, 不需要存锚)
+    feet_canvas = ref_bottom + (med_feet - uy1) * scale
+    dy = ref_bottom - feet_canvas
     if abs(dx) > 1 or abs(dy) > 1:
         print(f"  注册对齐偏移: dx={dx:.0f} dy={dy:.0f}", flush=True)
 
