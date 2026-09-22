@@ -192,14 +192,34 @@ def cut_video(pet_id: int, action: str, src: Path,
     uy0 = min(b[1] for _, b in cleaned)
     ux1 = max(b[2] for _, b in cleaned)
     uy1 = max(b[3] for _, b in cleaned)
+
+    # 跨动作注册对齐 (2026-09-20): 以第一个动作(通常是 idle)的"内容落点"为全局锚,
+    # 其他动作的整段帧统一平移对齐, 消除"点一下狐狸跳位置"
+    # 落点 = 各帧内容包围盒的中位数中心x/底y (原始坐标), 换算到画布坐标后与锚点对齐
+    import statistics
+    med_cx = statistics.median((b[0] + b[2]) / 2 for _, b in cleaned)
+    med_bot = statistics.median(b[3] for _, b in cleaned)
+    canvas_cx = ref_cx + (med_cx - (ux0 + ux1) / 2) * scale
+    canvas_bot = ref_bottom + (med_bot - uy1) * scale
+    meta = _m.setdefault("meta", {})
+    if meta.get("anchor_cx") is None or meta.get("anchor_bot") is None:
+        meta["anchor_cx"] = round(canvas_cx, 1)
+        meta["anchor_bot"] = round(canvas_bot, 1)
+        mpath_pre.write_text(json.dumps(_m, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"  设定注册落点: cx={meta['anchor_cx']} bot={meta['anchor_bot']}", flush=True)
+    dx = meta["anchor_cx"] - canvas_cx
+    dy = meta["anchor_bot"] - canvas_bot
+    if abs(dx) > 1 or abs(dy) > 1:
+        print(f"  注册对齐偏移: dx={dx:.0f} dy={dy:.0f}", flush=True)
+
     frames = []
     for out_i, (img, bbox) in enumerate(cleaned):
         # 统一窗口裁剪 (不逐帧裁): 视频里的相对位置原样保留, 帧间零位移
         img = img.crop((ux0, uy0, ux1, uy1))
         img = img.resize((max(1, int(img.width * scale)), max(1, int(img.height * scale))), Image.LANCZOS)
-        # 窗口固定摆放: 居中 x, 底边对锚点 y
-        px = int(round(ref_cx - img.width / 2))
-        py = int(round(ref_bottom - img.height))
+        # 窗口固定摆放: 居中 x, 底边对锚点 y, 加跨动作注册偏移
+        px = int(round(ref_cx - img.width / 2 + dx))
+        py = int(round(ref_bottom - img.height + dy))
         canvas = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
         canvas.paste(img, (px, py), img)
         canvas.save(frames_dir / f"{action}_{out_i}.png")

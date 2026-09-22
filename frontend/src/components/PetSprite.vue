@@ -78,7 +78,7 @@ function fadeFor(frameMs: number): number {
 }
 
 function play(actionName: string) {
-  stop()
+  if (timer) { clearInterval(timer); timer = null }   // 只停帧定时器, 保留过渡 flipTimer
   const meta = manifest.value?.actions[actionName]
   if (!meta) {
     // 动作不存在: 回退 idle; idle 也没有则报降级
@@ -88,26 +88,35 @@ function play(actionName: string) {
     return
   }
   tick = 0
+  const first = frameUrl(actionName, meta.sequence[0])
+  if (!baseSrc.value) {
+    baseSrc.value = first
+  } else if (baseSrc.value !== first) {
+    // 跨动作过渡: 旧帧垫底, 新动作首帧 120ms 淡入 (修"切换瞬间形象闪一下")
+    fadeMs.value = 120
+    advance(first)
+  }
   fadeMs.value = fadeFor(meta.frame_ms)
-  baseSrc.value = frameUrl(actionName, meta.sequence[0])
-  topSrc.value = ''
-  topOn.value = false
   timer = setInterval(() => {
     tick++
     advance(frameUrl(actionName, meta.sequence[tick % meta.sequence.length]))
   }, meta.frame_ms)
 }
 
-/** 单次播放某动作后回 idle (H6 生活动作编排用); 动作缺失则静默跳过 */
+/** 单次播放某动作后回默认动作 (H6 生活动作编排用); 动作缺失则静默跳过 */
 function playOnce(actionName: string) {
   const meta = manifest.value?.actions[actionName]
-  if (!meta || actionName === 'idle') return
-  stop()
+  if (!meta || actionName === props.action) return
+  if (timer) { clearInterval(timer); timer = null }
   tick = 0
+  const first = frameUrl(actionName, meta.sequence[0])
+  if (!baseSrc.value) {
+    baseSrc.value = first
+  } else if (baseSrc.value !== first) {
+    fadeMs.value = 120
+    advance(first)
+  }
   fadeMs.value = fadeFor(meta.frame_ms)
-  baseSrc.value = frameUrl(actionName, meta.sequence[0])
-  topSrc.value = ''
-  topOn.value = false
   timer = setInterval(() => {
     tick++
     if (tick >= meta.sequence.length) {
@@ -129,10 +138,13 @@ onMounted(async () => {
     if (!resp.ok) throw new Error(String(resp.status))
     version.value = encodeURIComponent(resp.headers.get('last-modified') ?? String(Date.now()))
     manifest.value = await resp.json()
-    // 预加载当前动作全部帧, 避免播放时闪烁
+    // 预加载当前动作全部帧 + 其余所有动作的首帧 (跨动作切换不闪)
     const meta = manifest.value!.actions[props.action]
     if (!meta) throw new Error('no action')
     meta.sequence.forEach((i) => { new Image().src = frameUrl(props.action, i) })
+    for (const [name, m] of Object.entries(manifest.value!.actions)) {
+      if (name !== props.action && m.sequence.length) new Image().src = frameUrl(name, m.sequence[0])
+    }
     play(props.action)
     emit('ready')
   } catch {
