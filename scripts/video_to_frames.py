@@ -136,6 +136,21 @@ def _drop_specks(img: Image.Image) -> Image.Image:
     return Image.fromarray(a, "RGBA")
 
 
+def _near_white_count(img: Image.Image) -> int:
+    a = np.asarray(img)
+    fg = a[a[..., 3] > 24]
+    return int((fg[:, :3].min(axis=1) > 200).sum()) if len(fg) else 0
+
+
+def _compress_whites(img: Image.Image, ratio: float) -> Image.Image:
+    """近白像素(min>200)向 200 压缩: px = 200 + (px-200)*ratio (只动过白的胸毛, 橙色身体不受影响)"""
+    a = np.array(img, dtype=np.float32)
+    mn = a[..., :3].min(axis=2)
+    mask = (mn > 200) & (a[..., 3] > 24)
+    a[..., :3][mask] = 200 + (a[..., :3][mask] - 200) * ratio
+    return Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA")
+
+
 def _feet_y(img: Image.Image, bbox: tuple[int, int, int, int]) -> int:
     """脚线 = 身体中央列(45%宽)内的内容底边 (排除两侧尾巴尖)
     2026-09-20 修"点击后上下位移": 锚'剪影底部'锚到的是尾巴尖, idle尾尖垂得低/petted不垂,
@@ -228,8 +243,23 @@ def cut_video(pet_id: int, action: str, src: Path,
     if abs(dx) > 1 or abs(dy) > 1:
         print(f"  注册对齐偏移: dx={dx:.0f} dy={dy:.0f}", flush=True)
 
+    # 白度锚点: 第一个动作存近白中位数, 后续动作超过 1.3x 就按比例压缩
+    # (不同视频的白色渲染量不同, petted/wave 比 idle 白 60%+ → 点击切换"更亮")
+    med_white = statistics.median(_near_white_count(img) for img, _ in cleaned)
+    meta2 = _m.setdefault("meta", {})
+    if meta2.get("white_ref") is None:
+        meta2["white_ref"] = int(med_white)
+        mpath_pre.write_text(json.dumps(_m, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"  设定白度锚点: {int(med_white)}", flush=True)
+    white_ratio = min(1.0, meta2["white_ref"] / med_white) if med_white > meta2["white_ref"] * 1.3 else 1.0
+    if white_ratio < 0.99:
+        print(f"  白度压缩: ×{white_ratio:.2f} (中位近白 {int(med_white)} → 锚 {meta2['white_ref']})", flush=True)
+
     frames = []
     for out_i, (img, bbox) in enumerate(cleaned):
+        # 白度归一: 过白的动作向锚动作压缩近白区域 (修"点击那一下更亮")
+        if white_ratio < 0.99:
+            img = _compress_whites(img, white_ratio)
         # 统一窗口裁剪 (不逐帧裁): 视频里的相对位置原样保留, 帧间零位移
         img = img.crop((ux0, uy0, ux1, uy1))
         img = img.resize((max(1, int(img.width * scale)), max(1, int(img.height * scale))), Image.LANCZOS)
@@ -244,10 +274,11 @@ def cut_video(pet_id: int, action: str, src: Path,
     # manifest 写入该动作 (幂等: 读现有 manifest 合并)
     # 序列 = ping-pong 正放+倒放 (2026-09-20 拍板, 对齐游戏动画设计: 动作"出去再回来",
     # 天然消循环接缝 + 天然回到待机姿势, 无需首尾帧==同一张图)
+    # 且一律剔除第 0 帧: 它是参考图本体的风格(更白更亮), 与视频主体不一致会闪 (2026-09-20 实测)
     mpath = pet_dir / "manifest.json"
     manifest = json.loads(mpath.read_text(encoding="utf-8")) if mpath.exists() else {
         "pet_id": pet_id, "style": "video", "actions": {}, "qc": {}}
-    sequence = list(range(sample_n)) + list(range(sample_n - 2, 0, -1))
+    sequence = list(range(1, sample_n)) + list(range(sample_n - 2, 0, -1))
     manifest["actions"][action] = {
         "frames": sample_n,
         "sequence": sequence,
