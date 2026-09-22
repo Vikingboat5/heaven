@@ -102,14 +102,16 @@ def _robust_content_bbox(img: Image.Image) -> tuple[int, int, int, int] | None:
     return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
 
 
-def _head_cx(img: Image.Image, bbox: tuple[int, int, int, int]) -> float:
-    """头/躯干的水平质心 (锚点!): 包围盒上 30% 区域(头+耳)的前景像素水平均值。
-    为什么不用 bbox 中心: 尾巴摆动会移动 bbox 中心 → 按它居中狐狸的身体就会滑(飘逸根因)。
-    为什么不用上 55%: 那会把会晃的肩膀/身体算进来, 只取头+耳最稳。"""
+def _feet_cx(img: Image.Image, bbox: tuple[int, int, int, int]) -> float:
+    """脚底水平质心 (根骨骼锚点, 2026-09-20 拍板"根不动身体活"):
+    包围盒底部 12% 区域(脚爪)的前景像素水平均值。
+    骨骼动画的原理: 根骨骼(脚底)永不动, 身体在根上方自由呼吸/摇摆——
+    锚定在脚 = 地面感; 锚定在头 = 把头也锁死(僵)。
+    尾巴垂地时也在底部, 但尾巴摆动是绕脚踝的小角度, 质心漂移远小于剪影中心。"""
     a = np.asarray(img)
     x0, y0, x1, y1 = bbox
-    head_h = max(1, int((y1 - y0) * 0.30))
-    mask = a[y0: y0 + head_h, x0: x1, 3] > 24
+    band_h = max(2, int((y1 - y0) * 0.12))
+    mask = a[y1 - band_h: y1, x0: x1, 3] > 24
     ys, xs = np.where(mask)
     if len(xs) == 0:
         return (x0 + x1) / 2
@@ -184,14 +186,19 @@ def cut_video(pet_id: int, action: str, src: Path,
     ref_bottom = CANVAS - 30
 
     scale = anchor / h_min
+    # 并集裁剪窗: 全部帧的稳健包围盒取并集, 整个动作共用同一个窗口
+    # (逐帧 re-anchor 是漂移和偏移的总根因——帧动画的正确做法是"同一画布注册", 视频自带的位置/摇晃原样保留)
+    ux0 = min(b[0] for _, b in cleaned)
+    uy0 = min(b[1] for _, b in cleaned)
+    ux1 = max(b[2] for _, b in cleaned)
+    uy1 = max(b[3] for _, b in cleaned)
     frames = []
     for out_i, (img, bbox) in enumerate(cleaned):
-        head_rel = _head_cx(img, bbox) - bbox[0]  # 该帧头/躯干在 bbox 内的相对 x
-        # crop 到稳健包围盒再缩放
-        img = img.crop(bbox)
+        # 统一窗口裁剪 (不逐帧裁): 视频里的相对位置原样保留, 帧间零位移
+        img = img.crop((ux0, uy0, ux1, uy1))
         img = img.resize((max(1, int(img.width * scale)), max(1, int(img.height * scale))), Image.LANCZOS)
-        # 头/躯干质心对锚点 x (身体不漂移), 底边对锚点 y (脚踩地)
-        px = int(round(ref_cx - head_rel * scale))
+        # 窗口固定摆放: 居中 x, 底边对锚点 y
+        px = int(round(ref_cx - img.width / 2))
         py = int(round(ref_bottom - img.height))
         canvas = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
         canvas.paste(img, (px, py), img)
