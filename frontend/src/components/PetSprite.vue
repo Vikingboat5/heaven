@@ -32,7 +32,6 @@ const manifest = ref<Manifest | null>(null)
 const baseSrc = ref('')
 const topSrc = ref('')
 const topOn = ref(false)
-const dipping = ref(false)        // 跨动作 dip 过渡: 旧帧淡出→换新→淡入 (绝不两帧重叠)
 const fadeMs = ref(90)           // 淡化时长 = 帧间隔的 60%
 const failed = ref(false)
 // 缓存破坏: manifest 的 Last-Modified 作版本号, 重新生成形象后帧 URL 自动更新
@@ -82,7 +81,7 @@ function fadeFor(frameMs: number): number {
 }
 
 function play(actionName: string) {
-  if (timer) { clearInterval(timer); timer = null }   // 只停帧定时器, 保留过渡 flipTimer
+  if (timer) { clearInterval(timer); timer = null }
   const meta = manifest.value?.actions[actionName]
   if (!meta) {
     // 动作不存在: 回退 idle; idle 也没有则报降级
@@ -92,28 +91,14 @@ function play(actionName: string) {
     return
   }
   tick = 0
-  const first = frameUrl(actionName, meta.sequence[0])
-  const startLoop = () => {
-    fadeMs.value = fadeFor(meta.frame_ms)
-    timer = setInterval(() => {
-      tick++
-      advance(frameUrl(actionName, meta.sequence[tick % meta.sequence.length]))
-    }, meta.frame_ms)
-  }
-  if (!baseSrc.value) {
-    baseSrc.value = first
-    startLoop()
-  } else if (baseSrc.value !== first) {
-    // 跨动作过渡 = dip: 旧帧淡出→换新→淡入 (不重叠; 2026-09-20 修"两个动画重叠")
-    dipping.value = true
-    setTimeout(() => {
-      baseSrc.value = first
-      dipping.value = false
-      startLoop()
-    }, 95)
-  } else {
-    startLoop()
-  }
+  // 跨动作硬切: 位置已由管线注册对齐(中x差2px), 任何淡出/交叉淡化都是"闪"的制造者
+  baseSrc.value = frameUrl(actionName, meta.sequence[0])
+  topOn.value = false
+  fadeMs.value = fadeFor(meta.frame_ms)
+  timer = setInterval(() => {
+    tick++
+    advance(frameUrl(actionName, meta.sequence[tick % meta.sequence.length]))
+  }, meta.frame_ms)
 }
 
 /** 单次播放某动作后回默认动作 (H6 生活动作编排用); 动作缺失则静默跳过 */
@@ -122,31 +107,17 @@ function playOnce(actionName: string) {
   if (!meta || actionName === props.action) return
   if (timer) { clearInterval(timer); timer = null }
   tick = 0
-  const first = frameUrl(actionName, meta.sequence[0])
-  const startLoop = () => {
-    fadeMs.value = fadeFor(meta.frame_ms)
-    timer = setInterval(() => {
-      tick++
-      if (tick >= meta.sequence.length) {
-        play(props.action)   // 回到配置的默认动作 (不一定是 idle)
-        return
-      }
-      advance(frameUrl(actionName, meta.sequence[tick]))
-    }, meta.frame_ms)
-  }
-  if (!baseSrc.value) {
-    baseSrc.value = first
-    startLoop()
-  } else if (baseSrc.value !== first) {
-    dipping.value = true
-    setTimeout(() => {
-      baseSrc.value = first
-      dipping.value = false
-      startLoop()
-    }, 95)
-  } else {
-    startLoop()
-  }
+  baseSrc.value = frameUrl(actionName, meta.sequence[0])
+  topOn.value = false
+  fadeMs.value = fadeFor(meta.frame_ms)
+  timer = setInterval(() => {
+    tick++
+    if (tick >= meta.sequence.length) {
+      play(props.action)   // 回到配置的默认动作 (不一定是 idle)
+      return
+    }
+    advance(frameUrl(actionName, meta.sequence[tick]))
+  }, meta.frame_ms)
 }
 
 /** 当前 manifest 实际可用的动作 (生活动作可能因 QC 失败被跳过) */
@@ -188,7 +159,6 @@ defineExpose({ play, playOnce, availableActions })
       class="pet-sprite"
       :class="{ pixelated: manifest?.style === 'pixel' }"
       :src="baseSrc"
-      :style="{ opacity: dipping ? 0 : 1 }"
       alt="宠物"
       draggable="false"
     />
@@ -215,7 +185,6 @@ defineExpose({ play, playOnce, availableActions })
   inset: 0;
   width: 100%; height: 100%; object-fit: contain;
   user-select: none; pointer-events: none;
-  transition: opacity 90ms var(--ease-out);   /* dip 过渡用 (跨动作) */
 }
 .layer-top {
   transition: opacity var(--motion-fast) var(--ease-out);
