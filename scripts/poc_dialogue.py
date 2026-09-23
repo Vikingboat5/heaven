@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from backend.app.core.persona import Personality, PetState, build_system_prompt  # noqa: E402
 
 # ---- POC 配置 (默认走环境已有 plan 代理; 可用环境变量覆盖) ----
-API_KEY = os.environ["ARK_API_KEY"]  # 从环境变量读取, 禁止硬编码 key
+API_KEY = os.environ["ARK_API_KEY"]  # 从环境变量/backend/.env 读取, 禁止硬编码 key
 BASE_URL = os.environ.get("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/plan/v1")
 MODEL = os.environ.get("ARK_MODEL", "kimi-k3")
 
