@@ -38,3 +38,5 @@ backend/static/pets/
 # OS
 .DS_Store
 Thumbs.db
+
+migration_capsule/
