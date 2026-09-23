@@ -7,9 +7,12 @@
 | 内容 | 走法 | 说明 |
 |---|---|---|
 | 代码 | **git 私有远端** | 全部代码+文档+脚本 |
-| 生成的素材（146MB：帧/明信片/物品/场景/UI） | **迁移胶囊**（`migration_capsule/static.zip`） | gitignore 覆盖，不进 git |
-| 数据库（宠物/日志/背包/记忆卡/账号） | **迁移胶囊**（`pet_paradise.dump`） | pg_dump 自定义格式 |
-| 密钥（`backend/.env`） | **手动复制**（U盘/加密笔记，绝不进 git/胶囊） | 含 ARK/AtlasCloud/LLM 全部 key |
+| 生成的素材（146MB：帧/明信片/物品/场景/UI） | **GitHub Release 附件**（首选）或胶囊文件夹 | gitignore 覆盖，不进 git（单文件>100MB GitHub 硬拒+历史膨胀） |
+| 数据库（宠物/日志/背包/记忆卡/账号） | **GitHub Release 附件**（首选）或胶囊文件夹 | pg_dump 自定义格式 |
+| 密钥（`backend/.env`） | **手动复制**（U盘/加密笔记，绝不进 git/胶囊/Release） | 含 ARK/AtlasCloud/LLM 全部 key |
+
+> Release 附件位置：`https://github.com/Vikingboat5/heaven/releases/tag/vacation-capsule-2026-09-20`
+> （static.zip + pet_paradise.dump 都在里面；胶囊文件夹是同一份的本地拷贝，二选一）
 
 ## 出发前（在 Windows 上）
 
