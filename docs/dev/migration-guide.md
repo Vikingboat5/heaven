@@ -33,27 +33,13 @@ python scripts\export_capsule.py
 ## 到达后（在 MacBook 上）
 
 ```bash
-# 1. 装环境: Docker Desktop for Mac + Python 3.11 + Node 20+
-# 2. 拉代码
-git clone <你的私有仓库URL> heaven && cd heaven
+# 一键恢复 (scripts/bootstrap_mac.sh: 工具链/容器/依赖/胶囊/数据/素材全自动):
+git clone https://github.com/Vikingboat5/heaven.git heaven && cd heaven
+bash scripts/bootstrap_mac.sh
+# 中途可能弹两次人工动作: ①Homebrew 装 Docker Desktop 首次启动 ②gh 浏览器授权(下载私有 release 附件)
+# 最后一步如提示缺 backend/.env: 把密钥内容放进去, 重跑一次脚本即可 (幂等)
 
-# 3. 放密钥
-cp /path/to/.env backend/.env
-
-# 4. 起数据库 (docker-compose.yml 的凭据已和 .env 对齐: postgres/postgres)
-docker compose up -d
-
-# 5. 恢复数据
-cat migration_capsule/pet_paradise.dump | docker exec -i pet-paradise-db pg_restore -U postgres -d pet_paradise --clean
-
-# 6. 恢复素材
-unzip migration_capsule/static.zip -d backend/
-
-# 7. 装依赖
-cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && pip install imageio imageio-ffmpeg
-cd ../frontend && npm install
-
-# 8. 跑起来
+# 完成后启动:
 cd backend && source .venv/bin/activate && python -m uvicorn app.main:app --port 8000 &
 cd frontend && npm run dev
 # 打开 http://localhost:5173
