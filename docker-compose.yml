@@ -3,8 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: pet-paradise-db
     environment:
-      POSTGRES_USER: petparadise
-      POSTGRES_PASSWORD: petparadise_dev
+      # 与 backend/.env 的 DATABASE_URL 保持一致 (postgres/postgres)
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: pet_paradise
     ports:
       - "5432:5432"
