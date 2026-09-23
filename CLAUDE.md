@@ -5,11 +5,22 @@
 
 ## 项目速览
 
-- 单机版 AI 宠物应用：Vue3 + Vite 前端（`frontend/`），FastAPI + SQLAlchemy 后端（`backend/`），PostgreSQL/Redis 本机运行
+- 单机版 AI 宠物应用：Vue3 + Vite 前端（`frontend/`），FastAPI + SQLAlchemy 后端（`backend/`），PostgreSQL/Redis 本机运行（`docker compose up -d`）
 - 文档入口：`README.md`；需求唯一依据 `docs/spec/mvp-spec.md`；最高准绳 `docs/vision/product-vision-v1.0.md`；方向性决策 `docs/decisions/`(ADR)；**UI/动效规范 `docs/spec/ui-motion-guidelines.md`（所有前端页面/组件的实现与验收依据，tokens 在 `frontend/src/style.css`）**
-- 常用开发脚本（`scripts/`）：`check_state.py`（只读查库）、`fastforward_hatch.py <username>`（孵化值快进）、`regenerate_sprite.py <pet_id>`（重跑形象生成）、`cleanup_probe.py <username>`（清探针账号）、`checkpoint.ps1`（留回退点）
+- **动画管道 spec：`docs/spec/pet-animation-pipeline-spec.md`（动作集/物种适配/首尾帧→视频→采帧全流程）**；内容设计表 `backend/app/content/animation_designs.json`（物种路由，铁律：鱼不招手）
+- 常用开发脚本（`scripts/`）：`check_state.py`（只读查库）、`fastforward_hatch.py <username>`（孵化值快进）、`checkpoint.ps1`（留回退点）、`e2e_force_return.py [user] [seed]`（强制宠物回家）、`export_capsule.py`（迁移胶囊导出）、`gen_animation_frames.py <pet_id>`（动作首尾帧）、`gen_action_video.py <pet_id>`（视频生成+采帧）、`video_to_frames.py`（离线重切帧）
 - 后端启动：`cd backend && python -m uvicorn app.main:app --port 8000`（受限环境禁用 `--reload`，子进程命名管道会被拦截）
 - 前端启动：`cd frontend && npm run dev`；本机可能存在多个 dev server（5173/5174），排查前先确认用户实际在哪个端口
+
+## 当前状态速览（2026-09-20，新会话从这里接上）
+
+- **远端**：`https://github.com/Vikingboat5/heaven`（私有）；素材/密钥不在 git（见 `docs/dev/migration-guide.md`）
+- **AI 供应商**：文本/生图=方舟 Agent Plan（`/api/plan` 端点，kimi-k3/seedream-5.0-lite）；**视频=AtlasCloud seedance-2.0-mini**（首尾帧 i2v；方舟不含视频模型已弃用）；key 全在 `backend/.env`（gitignore）
+- **宠物动画**：视频采帧帧动画（24帧 ping-pong 播放）。管线关键工艺：**并集裁剪窗**（整动作共用注册窗，禁逐帧 re-anchor）、**解剖学锚点**（身长缩放+脚线对地，禁锚剪影指标）、**剔除第 0 帧**（参考图本体风格突变）、**白度压缩**（跨动作亮度一致）、**切换硬切**（位置对齐后任何淡化/过渡都是闪烁源）
+- **内容系统**：种子冒险（seeds.json）+ 地点记忆卡（pet_seed_memories，重访信件连续性，token O(1)）+ 首到明信片（postcard_service）+ 图鉴（collection=曾经获得，非当前持有）
+- **UI**：底部 tab（小窝/日记/背包）+ 场景实物入口 + 明信片墙（夜空挂绳）；规范 v1.3
+- **探针账号**：`e2e_ui_probe / probe123456`（宠物=咿呀，狐），`postcard_probe`（宠物=片片）；清理用 `cleanup_probe.py`
+- **信件基调**：宠物视角讲自己的见闻（修订 R6：主体是它的世界，想念只许自然流露，禁止"想你"模板结尾）
 
 ## 工作红线（通用行为约束）
 
