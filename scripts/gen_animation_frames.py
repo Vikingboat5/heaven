@@ -44,8 +44,12 @@ def gen_frame(prompt: str, ref: str, out: Path) -> None:
         data=json.dumps(payload).encode(),
         headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=180) as r:
-        url = json.loads(r.read())["data"][0]["url"]
+    try:
+        with urllib.request.urlopen(req, timeout=180) as r:
+            url = json.loads(r.read())["data"][0]["url"]
+    except urllib.error.HTTPError as e:
+        print(f"  生图 HTTP {e.code}: {e.read().decode(errors='replace')[:300]}", flush=True)
+        raise
     raw = out.with_suffix(".raw.jpg")
     download(url, raw)
     img = cutout_dominant_bg(Image.open(raw))
@@ -70,8 +74,12 @@ def gen_strip(action: str, spec: dict, appearance: str, ref: str, out_dir: Path)
         data=json.dumps(payload).encode(),
         headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=180) as r:
-        url = json.loads(r.read())["data"][0]["url"]
+    try:
+        with urllib.request.urlopen(req, timeout=180) as r:
+            url = json.loads(r.read())["data"][0]["url"]
+    except urllib.error.HTTPError as e:
+        print(f"  生图 HTTP {e.code}: {e.read().decode(errors='replace')[:300]}", flush=True)
+        raise
     raw = out_dir / f"{action}_strip_raw.jpg"
     download(url, raw)
     img = Image.open(raw)

@@ -183,7 +183,8 @@ onMounted(async () => {
 })
 
 /* ---- H6: 生活动作随机编排 (待机为主, 每 18-40s 随机做一个生活动作) ---- */
-const AMBIENT_ACTIONS = ['stretch', 'groom', 'doze']
+/* 候选含水彩老动作(stretch/groom/doze)和视频新动作(sleep/eat), 以 manifest 实际可用为准 */
+const AMBIENT_ACTIONS = ['stretch', 'groom', 'doze', 'sleep', 'eat']
 const spriteRef = ref<InstanceType<typeof PetSprite> | null>(null)
 let ambientTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -192,9 +193,7 @@ function scheduleAmbient() {
   const delay = 18000 + Math.random() * 22000
   ambientTimer = setTimeout(() => {
     // 仅在家、形象就绪、页面可见时播放; 动作以 manifest 实际可用为准 (QC 失败的动作会被管线跳过)
-    // 有视频采帧动作(video_idle)的宠物不混播水彩动作 (画风不一致会出戏)
-    const hasVideo = spriteRef.value?.availableActions().some((a) => a.startsWith('video_'))
-    if (pet.value && !pet.value.away && spriteReady.value && !document.hidden && !hasVideo) {
+    if (pet.value && !pet.value.away && spriteReady.value && !document.hidden) {
       const available = AMBIENT_ACTIONS.filter((a) => spriteRef.value?.availableActions().includes(a))
       if (available.length > 0) {
         spriteRef.value?.playOnce(available[Math.floor(Math.random() * available.length)])
