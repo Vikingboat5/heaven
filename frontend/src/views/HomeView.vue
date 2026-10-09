@@ -34,7 +34,7 @@ const postcards = ref<AdventureLogOut[]>([])
 
 async function loadPostcards() {
   try {
-    const { logs } = await api.getAdventureLogs(20)
+    const { logs } = await api.getPostcards()  // 专用端点, 窗口永不漏 (logs limit=50 会丢早期明信片)
     postcards.value = logs.filter((l) => l.rewards?.postcard)
   } catch { /* 明信片加载失败不影响主页 */ }
 }

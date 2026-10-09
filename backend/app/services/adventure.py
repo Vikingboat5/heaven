@@ -344,3 +344,19 @@ def list_logs(db: Session, user_id: int, limit: int = 20) -> list[dict]:
         .all()
     )
     return [log_to_out(row) for row in rows]
+
+
+def list_postcard_logs(db: Session, user_id: int) -> list[dict]:
+    """全部带明信片的日志 (专用查询, 不受 logs 的 limit 窗口限制——明信片是稀疏资产,
+    日志一多就会掉出窗口, 2026-10-08 用户报'明信片丢失'实为此因)"""
+    pet = get_my_pet_row(db, user_id)
+    if pet is None:
+        return []
+    rows = (
+        db.query(AdventureLog)
+        .filter(AdventureLog.pet_id == pet.id)
+        .filter(AdventureLog.rewards["postcard"].as_string().isnot(None))
+        .order_by(AdventureLog.id.desc())
+        .all()
+    )
+    return [log_to_out(row) for row in rows]

@@ -30,7 +30,7 @@ const selected = ref<AdventureLogOut | null>(null)
 
 onMounted(async () => {
   try {
-    const r = await api.getAdventureLogs(30)
+    const r = await api.getPostcards()  // 专用端点, 窗口永不漏 (logs limit=50 会丢早期明信片)
     logs.value = r.logs
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : '加载失败'

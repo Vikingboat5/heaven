@@ -191,6 +191,8 @@ export const api = {
     }),
   getLoadout: () => request<LoadoutOut>('/api/adventure/loadout'),
   getAdventureLogs: (limit = 20) => request<{ logs: AdventureLogOut[] }>(`/api/adventure/logs?limit=${limit}`),
+  // 全部明信片日志 (专用端点, 不受 logs 的 limit 窗口限制)
+  getPostcards: () => request<{ logs: AdventureLogOut[] }>('/api/adventure/postcards'),
   getCatalog: () => request<{ items: CatalogItemOut[] }>('/api/items/catalog'),
   markItemsSeen: (itemIds: string[]) =>
     request<{ cleared: number }>('/api/items/mark_seen', { method: 'POST', body: JSON.stringify({ item_ids: itemIds }) }),

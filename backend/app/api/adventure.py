@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import User
-from ..services.adventure import check_and_simulate, leave_now, list_logs
+from ..services.adventure import check_and_simulate, leave_now, list_logs, list_postcard_logs
 from .deps import get_current_user
 
 router = APIRouter(prefix="/api/adventure", tags=["adventure"])
@@ -50,6 +50,12 @@ def logs(
     user: User = Depends(get_current_user),
 ):
     return {"logs": list_logs(db, user.id, limit)}
+
+
+@router.get("/postcards")
+def postcards(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """全部明信片日志 (专用, 不受 /logs 的 limit 窗口限制)"""
+    return {"logs": list_postcard_logs(db, user.id)}
 
 
 def _must_pet(db: Session, user: User):
