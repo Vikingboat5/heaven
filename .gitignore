@@ -40,3 +40,5 @@ backend/static/pets/
 Thumbs.db
 
 migration_capsule/
+
+backend/.env.bak*
